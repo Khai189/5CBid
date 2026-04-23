@@ -6,12 +6,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ccbid.biddingsite.service.BidderService;
+import com.ccbid.biddingsite.service.ItemService;
 
 @RestController
 @RequestMapping("/bidders")
 public class BidderController {
     @Autowired 
     private BidderService service;
+    @Autowired 
+    private ItemService itemService;
 
     @RequestMapping("/all")
     public String getBidders() {

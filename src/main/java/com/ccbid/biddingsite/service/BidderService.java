@@ -13,5 +13,15 @@ public class BidderService {
     public String getBidders() {
         return repo.getBidders();
     }
+
+    public String getBidder(String bidderId) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getBidder'");
+    }
+
+    public String addBidder(String bidderId, String name) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'addBidder'");
+    }
     
 }

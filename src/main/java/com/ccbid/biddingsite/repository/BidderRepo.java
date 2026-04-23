@@ -7,4 +7,5 @@ public interface BidderRepo {
     String getBidders();
     String getBidder(String bidderId);
     String addBidder(String bidderId, String name);
+    String getMaxBidder(String itemId);
 }
