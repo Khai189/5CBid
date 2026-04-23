@@ -1,12 +1,14 @@
-package com.ccbid.demo.service;
+package com.ccbid.biddingsite.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.ccbid.biddingsite.repository.BidderRepo;
+
 
 @Service
 public class BidderService {
     @Autowired
-    private BidderRepository repo;
+    private BidderRepo repo;
     
     public String getBidders() {
         return repo.getBidders();

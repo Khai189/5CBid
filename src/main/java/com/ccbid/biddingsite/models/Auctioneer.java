@@ -1,15 +1,17 @@
-package com.ccbid.demo.models;
+package com.ccbid.biddingsite.models;
 
 import java.util.Optional;
 
+import jakarta.persistence.Entity;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
 public class Auctioneer {
     public String auctioneerId;
     public String name;
-
-    public Auctioneer(String auctioneerId, String name) {
-        this.auctioneerId = auctioneerId;
-        this.name = name;
-    }
 
     public void setUpAuction(String itemId, String itemName, Integer startingPrice, Optional<String> description) {
         

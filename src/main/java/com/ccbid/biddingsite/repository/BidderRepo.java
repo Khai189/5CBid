@@ -1,4 +1,4 @@
-package com.ccbid.demo.repository;
+package com.ccbid.biddingsite.repository;
 
 import org.springframework.stereotype.Repository;
 

@@ -1,10 +1,11 @@
-package com.ccbid.demo.controller;
+package com.ccbid.biddingsite.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import com.ccbid.demo.service.BidderService;
+
+import com.ccbid.biddingsite.service.BidderService;
 
 @RestController
 @RequestMapping("/bidders")
