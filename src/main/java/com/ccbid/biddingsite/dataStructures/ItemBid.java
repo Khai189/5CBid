@@ -8,12 +8,6 @@ import java.util.PriorityQueue;
 import com.ccbid.biddingsite.models.Auctioneer;
 import com.ccbid.biddingsite.models.BidItem;
 
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
-import jakarta.persistence.Entity;
-@NoArgsConstructor
-@AllArgsConstructor
-@Entity
 public class ItemBid {
 
     private Auctioneer auctioneer;
@@ -21,6 +15,14 @@ public class ItemBid {
     private final PriorityQueue<Map.Entry<String, Integer>> maxHeap =
         new PriorityQueue<>((a, b) -> b.getValue().compareTo(a.getValue()));
     private final HashMap<String, Integer> hashMap = new HashMap<>();
+
+    public ItemBid() {
+    }
+
+    public ItemBid(Auctioneer auctioneer, BidItem item) {
+        this.auctioneer = auctioneer;
+        this.item = item;
+    }
 
 
     public PriorityQueue<Map.Entry<String, Integer>> getPriorityQueue() {

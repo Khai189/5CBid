@@ -1,19 +1,51 @@
 package com.ccbid.biddingsite.service;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.ccbid.biddingsite.dataStructures.ItemBid;
 import com.ccbid.biddingsite.models.Auctioneer;
+import com.ccbid.biddingsite.models.Bid;
 import com.ccbid.biddingsite.models.BidItem;
+import com.ccbid.biddingsite.models.Bidder;
+import com.ccbid.biddingsite.repository.AuctioneerRepo;
+import com.ccbid.biddingsite.repository.BidRepo;
+import com.ccbid.biddingsite.repository.BidderRepo;
+import com.ccbid.biddingsite.repository.ItemRepo;
+
+import jakarta.annotation.PostConstruct;
 
 @Service
 public class BidService {
 
     private final Map<String, ItemBid> itemBids = new ConcurrentHashMap<>();
 
+    @Autowired private ItemRepo itemRepo;
+    @Autowired private AuctioneerRepo auctioneerRepo;
+    @Autowired private BidRepo bidRepo;
+    @Autowired private BidderRepo bidderRepo;
+
+    @PostConstruct
+    @Transactional(readOnly = true)
+    public void rehydrate() {
+        for (BidItem item : itemRepo.findAll()) {
+            itemBids.put(item.getItemId(), new ItemBid(item.getAuctioneer(), item));
+        }
+        for (Bid b : bidRepo.findAllByActiveTrueOrderByCreatedAtAsc()) {
+            ItemBid ib = itemBids.get(b.getItemId());
+            if (ib != null) {
+                ib.addBid(b.getBidderId(), b.getAmount());
+            }
+        }
+    }
+
+    @Transactional
     public ItemBid addItem(BidItem item, Auctioneer auctioneer) {
         if (item == null || item.getItemId() == null) {
             throw new IllegalArgumentException("Item and itemId are required");
@@ -21,11 +53,19 @@ public class BidService {
         if (auctioneer == null || auctioneer.getAuctioneerId() == null) {
             throw new IllegalArgumentException("An auctioneer is required to list an item");
         }
-        ItemBid existing = itemBids.putIfAbsent(item.getItemId(), new ItemBid(auctioneer, item));
-        if (existing != null) {
+        if (itemBids.containsKey(item.getItemId()) || itemRepo.existsById(item.getItemId())) {
             throw new IllegalStateException("Item " + item.getItemId() + " is already listed");
         }
-        return itemBids.get(item.getItemId());
+        Auctioneer persistedAuctioneer = auctioneerRepo.findById(auctioneer.getAuctioneerId())
+            .orElseGet(() -> auctioneerRepo.save(auctioneer));
+        item.setAuctioneer(persistedAuctioneer);
+        BidItem savedItem = itemRepo.save(item);
+        ItemBid ib = new ItemBid(persistedAuctioneer, savedItem);
+        ItemBid existing = itemBids.putIfAbsent(savedItem.getItemId(), ib);
+        if (existing != null) {
+            throw new IllegalStateException("Item " + savedItem.getItemId() + " is already listed");
+        }
+        return ib;
     }
 
     public ItemBid addItem(String itemId, String itemName, Integer startingPrice,
@@ -48,6 +88,7 @@ public class BidService {
         return bid;
     }
 
+    @Transactional
     public String placeBid(String itemId, String bidderId, int amount) {
         if (bidderId == null || bidderId.isBlank()) {
             throw new IllegalArgumentException("bidderId is required");
@@ -66,6 +107,12 @@ public class BidService {
             if (currentHighest >= 0 && amount <= currentHighest) {
                 throw new IllegalArgumentException("Bid " + amount + " must be greater than current max " + currentHighest);
             }
+            bidderRepo.findById(bidderId).orElseGet(() -> {
+                Bidder b = new Bidder();
+                b.setBidderId(bidderId);
+                return bidderRepo.save(b);
+            });
+            bidRepo.save(new Bid(null, itemId, bidderId, amount, Instant.now(), true));
             bid.addBid(bidderId, amount);
             return "Bid placed: bidder=" + bidderId + " amount=" + amount + " item=" + itemId
                 + " | currentHighest=" + bid.getHighestBid() + " by " + bid.getHighestBidder();
@@ -80,9 +127,17 @@ public class BidService {
         return getItem(itemId).getHighestBidder();
     }
 
+    @Transactional
     public String removeBid(String itemId, String bidderId) {
         ItemBid bid = getItem(itemId);
-        bid.removeBid(bidderId);
-        return "Removed bid by " + bidderId + " on " + itemId;
+        synchronized (bid) {
+            List<Bid> active = bidRepo.findAllByItemIdAndBidderIdAndActiveTrue(itemId, bidderId);
+            for (Bid b : active) {
+                b.setActive(false);
+            }
+            bidRepo.saveAll(active);
+            bid.removeBid(bidderId);
+            return "Removed bid by " + bidderId + " on " + itemId;
+        }
     }
 }
