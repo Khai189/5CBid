@@ -20,7 +20,8 @@ public class RecService {
 
     ItemGraph<BidItem> itemGraph = new ItemGraph<>();
 
-    public List<BidItem> getRecommendations(String itemId, int totalRecs) {
+    public List<BidItem> getRecommendations(String bidderId, String itemId, int totalRecs) {
+        
        return null;
     }
 
