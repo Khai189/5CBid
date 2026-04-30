@@ -13,10 +13,17 @@ import com.ccbid.biddingsite.service.RecService;
 public class RecController {
 
     @Autowired private RecService service;
+
     @GetMapping("/rec/{itemId}/{totalRecs}")
-    public List<BidItem> getTop5(@RequestParam String itemId, @RequestParam int totalRecs) {
+    public List<BidItem> getRecs(@RequestParam String itemId, @RequestParam int totalRecs) {
         return service.getRecommendations(itemId, totalRecs);
     }
+
+    @GetMapping("/feed/{bidderId}")
+    public List<BidItem> getFeed(@RequestParam String bidderId){
+        return service.getFeed(bidderId);
+    }
+
 
     
     
