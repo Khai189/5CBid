@@ -4,6 +4,9 @@ import org.springframework.stereotype.Service;
 import com.ccbid.biddingsite.dataStructures.ItemGraph;
 import com.ccbid.biddingsite.models.BidItem;
 import com.ccbid.biddingsite.repository.ItemRepo;
+
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import com.ccbid.biddingsite.controller.RecController;
 
@@ -16,6 +19,10 @@ public class RecService {
     @Autowired private RecController recController;
 
     ItemGraph<BidItem> itemGraph = new ItemGraph<>();
+
+    public List<BidItem> getRecommendations(String itemId, int totalRecs) {
+        throw new UnsupportedOperationException("Unimplemented method 'getRecommendations'");
+    }
 
     
 
