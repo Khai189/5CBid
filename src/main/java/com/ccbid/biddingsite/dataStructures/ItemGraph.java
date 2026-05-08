@@ -13,7 +13,7 @@ public class ItemGraph<T> {
         adjList.putIfAbsent(vertex, new LinkedList<>());
     }
 
-    public void addEdge(T from, T to, boolean bidirectional) {
+    public void addEdge(T from, T to, int weight, boolean bidirectional) {
         if(!adjList.containsKey(from)){
             addVertex(from);
         }
@@ -26,6 +26,7 @@ public class ItemGraph<T> {
         if (bidirectional) {
             adjList.get(to).add(from);
         }
+
     }
 
     public int getVertexCount() {
@@ -50,6 +51,11 @@ public class ItemGraph<T> {
     public List<T> getNeighbors(T vertex) {
         return adjList.get(vertex);
     }
+
+    public Map<T, List<T>> getShortestPaths(){
+        return null;
+    }
+
 
     @Override
     public String toString() {
