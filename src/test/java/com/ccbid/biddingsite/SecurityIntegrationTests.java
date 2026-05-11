@@ -18,6 +18,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(properties = {
     "spring.datasource.url=jdbc:h2:mem:security-tests;DB_CLOSE_DELAY=-1",
+    "spring.datasource.username=sa",
+    "spring.datasource.password=",
     "spring.h2.console.enabled=false"
 })
 class SecurityIntegrationTests {
