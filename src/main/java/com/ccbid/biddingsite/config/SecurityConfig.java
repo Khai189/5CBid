@@ -86,7 +86,7 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/h2/**", "/error").permitAll()
-                .requestMatchers(GET, "/bid/**", "/bidders/**", "/rec/**", "/feed/**").authenticated()
+                .requestMatchers(GET, "/bid/**", "/bidders/**", "/rec/**", "/feed/**", "/items/**").authenticated()
                 .requestMatchers(POST, "/bid/list").hasAnyRole("AUCTIONEER", "ADMIN")
                 .requestMatchers(POST, "/bid/**").hasAnyRole("BIDDER", "ADMIN")
                 .requestMatchers(DELETE, "/bid/**").hasAnyRole("BIDDER", "ADMIN")
