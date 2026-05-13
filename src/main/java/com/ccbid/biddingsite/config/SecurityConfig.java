@@ -5,23 +5,24 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import static org.springframework.http.HttpMethod.DELETE;
-import static org.springframework.http.HttpMethod.GET;
-import static org.springframework.http.HttpMethod.POST;
+import com.ccbid.biddingsite.models.UserAccount;
+import com.ccbid.biddingsite.repository.UserAccountRepo;
 
 @Configuration
 public class SecurityConfig {
@@ -32,29 +33,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public UserDetailsService userDetailsService(
-        PasswordEncoder passwordEncoder,
-        @Value("${app.security.admin.username:admin}") String adminUsername,
-        @Value("${app.security.admin.password:admin}") String adminPassword,
-        @Value("${app.security.bidder.username:bidder}") String bidderUsername,
-        @Value("${app.security.bidder.password:bidder}") String bidderPassword,
-        @Value("${app.security.auctioneer.username:auctioneer}") String auctioneerUsername,
-        @Value("${app.security.auctioneer.password:auctioneer}") String auctioneerPassword
-    ) {
-        return new InMemoryUserDetailsManager(
-            User.withUsername(adminUsername)
-                .password(passwordEncoder.encode(adminPassword))
-                .roles("ADMIN", "BIDDER", "AUCTIONEER")
-                .build(),
-            User.withUsername(bidderUsername)
-                .password(passwordEncoder.encode(bidderPassword))
-                .roles("BIDDER")
-                .build(),
-            User.withUsername(auctioneerUsername)
-                .password(passwordEncoder.encode(auctioneerPassword))
-                .roles("AUCTIONEER")
-                .build()
-        );
+    public UserDetailsService userDetailsService(UserAccountRepo userAccountRepo) {
+        return username -> buildUserDetails(userAccountRepo, username);
     }
 
     @Bean
@@ -75,22 +55,19 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.ignoringRequestMatchers(
-                "/h2/**",
-                "/bid/**",
-                "/bidders/**",
-                "/rec/**",
-                "/feed/**"
-            ))
+            .csrf(AbstractHttpConfigurer::disable)
             .cors(Customizer.withDefaults())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/h2/**", "/error").permitAll()
-                .requestMatchers(GET, "/bid/**", "/bidders/**", "/rec/**", "/feed/**", "/items/**").authenticated()
-                .requestMatchers(POST, "/bid/list").hasAnyRole("AUCTIONEER", "ADMIN")
-                .requestMatchers(POST, "/bid/**").hasAnyRole("BIDDER", "ADMIN")
-                .requestMatchers(DELETE, "/bid/**").hasAnyRole("BIDDER", "ADMIN")
-                .requestMatchers("/bidders/add/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/auth/register", "/auth/login").permitAll()
+                .requestMatchers(HttpMethod.GET, "/auth/me").authenticated()
+                .requestMatchers(HttpMethod.GET, "/bid/**", "/bidders/**", "/rec/**", "/feed/**", "/items/**")
+                    .authenticated()
+                .requestMatchers(HttpMethod.POST, "/bid/list").hasAnyRole("AUCTIONEER", "ADMIN")
+                .requestMatchers(HttpMethod.POST, "/bid/**").hasAnyRole("BIDDER", "ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/bid/**").hasAnyRole("BIDDER", "ADMIN")
+                .requestMatchers(HttpMethod.POST, "/bidders/add/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
             .httpBasic(Customizer.withDefaults());
@@ -100,5 +77,15 @@ public class SecurityConfig {
         http.logout(AbstractHttpConfigurer::disable);
 
         return http.build();
+    }
+
+    private UserDetails buildUserDetails(UserAccountRepo userAccountRepo, String username) {
+        UserAccount account = userAccountRepo.findByUsernameIgnoreCase(username)
+            .orElseThrow(() -> new UsernameNotFoundException("User " + username + " not found"));
+
+        return User.withUsername(account.getUsername())
+            .password(account.getPasswordHash())
+            .roles(account.getRole().name())
+            .build();
     }
 }

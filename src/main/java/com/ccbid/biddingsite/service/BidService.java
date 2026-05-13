@@ -93,6 +93,8 @@ public class BidService {
         if (bidderId == null || bidderId.isBlank()) {
             throw new IllegalArgumentException("bidderId is required");
         }
+        bidderRepo.findById(bidderId)
+            .orElseThrow(() -> new IllegalStateException("Bidder " + bidderId + " is not registered"));
         ItemBid bid = getItem(itemId);
         synchronized (bid) {
             int currentHighest = bid.getHighestBid();
@@ -107,11 +109,6 @@ public class BidService {
             if (currentHighest >= 0 && amount <= currentHighest) {
                 throw new IllegalArgumentException("Bid " + amount + " must be greater than current max " + currentHighest);
             }
-            bidderRepo.findById(bidderId).orElseGet(() -> {
-                Bidder b = new Bidder();
-                b.setBidderId(bidderId);
-                return bidderRepo.save(b);
-            });
             bidRepo.save(new Bid(null, itemId, bidderId, amount, Instant.now(), true));
             bid.addBid(bidderId, amount);
             return "Bid placed: bidder=" + bidderId + " amount=" + amount + " item=" + itemId

@@ -56,6 +56,7 @@ class BidServiceTest {
     @Test
     void placeBidRejectsAmountBelowStartingPrice() {
         registerItem("item-1", 100);
+        when(bidderRepo.findById("bidder-1")).thenReturn(Optional.of(new Bidder("bidder-1", "Sam")));
 
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
             () -> service.placeBid("item-1", "bidder-1", 90));
