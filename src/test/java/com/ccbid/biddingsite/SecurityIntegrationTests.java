@@ -1,28 +1,23 @@
 package com.ccbid.biddingsite;
 
-import java.time.Instant;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.context.WebApplicationContext;
 
-import com.ccbid.biddingsite.models.AccountRole;
-import com.ccbid.biddingsite.models.Auctioneer;
-import com.ccbid.biddingsite.models.Bidder;
-import com.ccbid.biddingsite.models.UserAccount;
+import com.ccbid.biddingsite.dto.RegisterRequest;
 import com.ccbid.biddingsite.repository.AuctioneerRepo;
 import com.ccbid.biddingsite.repository.BidRepo;
 import com.ccbid.biddingsite.repository.BidderRepo;
 import com.ccbid.biddingsite.repository.ItemRepo;
 import com.ccbid.biddingsite.repository.UserAccountRepo;
+import com.ccbid.biddingsite.service.AuthService;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -35,7 +30,8 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppC
     "spring.datasource.url=jdbc:h2:mem:security-tests;DB_CLOSE_DELAY=-1",
     "spring.datasource.username=sa",
     "spring.datasource.password=",
-    "spring.h2.console.enabled=false"
+    "spring.h2.console.enabled=false",
+    "app.security.jwt-secret=test-jwt-secret-with-at-least-thirty-two-characters"
 })
 class SecurityIntegrationTests {
 
@@ -58,7 +54,7 @@ class SecurityIntegrationTests {
     private BidRepo bidRepo;
 
     @Autowired
-    private PasswordEncoder passwordEncoder;
+    private AuthService authService;
 
     private MockMvc mockMvc;
 
@@ -76,7 +72,7 @@ class SecurityIntegrationTests {
     }
 
     @Test
-    void registerCreatesBidderAccountAndProfile() throws Exception {
+    void registerCreatesBidderAccountAndReturnsJwt() throws Exception {
         mockMvc.perform(post("/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
@@ -89,14 +85,21 @@ class SecurityIntegrationTests {
                     }
                     """))
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.username").value("taylor-bidder"))
-            .andExpect(jsonPath("$.role").value("BIDDER"))
-            .andExpect(jsonPath("$.profileId").value("taylor-bidder"));
+            .andExpect(jsonPath("$.accessToken").isString())
+            .andExpect(jsonPath("$.tokenType").value("Bearer"))
+            .andExpect(jsonPath("$.user.username").value("taylor-bidder"))
+            .andExpect(jsonPath("$.user.profileId").value("taylor-bidder"));
     }
 
     @Test
-    void loginReturnsRegisteredAccount() throws Exception {
-        saveAccount("casey-auctioneer", "secret123", "casey@example.com", "Casey", AccountRole.AUCTIONEER);
+    void loginReturnsJwtForRegisteredAccount() throws Exception {
+        authService.register(new RegisterRequest(
+            "casey-auctioneer",
+            "casey@example.com",
+            "secret123",
+            "Casey",
+            "AUCTIONEER"
+        ));
 
         mockMvc.perform(post("/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -107,8 +110,9 @@ class SecurityIntegrationTests {
                     }
                     """))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.displayName").value("Casey"))
-            .andExpect(jsonPath("$.role").value("AUCTIONEER"));
+            .andExpect(jsonPath("$.accessToken").isString())
+            .andExpect(jsonPath("$.user.displayName").value("Casey"))
+            .andExpect(jsonPath("$.user.role").value("AUCTIONEER"));
     }
 
     @Test
@@ -118,20 +122,30 @@ class SecurityIntegrationTests {
     }
 
     @Test
-    void bidderCanReadBiddersEndpoint() throws Exception {
-        saveAccount("bidder-user", "secret123", "bidder@example.com", "Bidder User", AccountRole.BIDDER);
+    void bidderTokenCanReadBiddersEndpoint() throws Exception {
+        String token = registerAndGetToken(
+            "bidder-user",
+            "bidder@example.com",
+            "Bidder User",
+            "BIDDER"
+        );
 
         mockMvc.perform(get("/bidders/all")
-                .with(httpBasic("bidder-user", "secret123")))
+                .header(HttpHeaders.AUTHORIZATION, bearer(token)))
             .andExpect(status().isOk());
     }
 
     @Test
-    void bidderCannotListAuctionItem() throws Exception {
-        saveAccount("bidder-user", "secret123", "bidder@example.com", "Bidder User", AccountRole.BIDDER);
+    void bidderTokenCannotListAuctionItem() throws Exception {
+        String token = registerAndGetToken(
+            "bidder-user",
+            "bidder@example.com",
+            "Bidder User",
+            "BIDDER"
+        );
 
         mockMvc.perform(post("/bid/list")
-                .with(httpBasic("bidder-user", "secret123"))
+                .header(HttpHeaders.AUTHORIZATION, bearer(token))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -144,11 +158,16 @@ class SecurityIntegrationTests {
     }
 
     @Test
-    void auctioneerCanListAuctionItemWithAuthenticatedIdentity() throws Exception {
-        saveAccount("auctioneer-user", "secret123", "auctioneer@example.com", "Alex", AccountRole.AUCTIONEER);
+    void auctioneerTokenCanListAuctionItemWithAuthenticatedIdentity() throws Exception {
+        String token = registerAndGetToken(
+            "auctioneer-user",
+            "auctioneer@example.com",
+            "Alex",
+            "AUCTIONEER"
+        );
 
         mockMvc.perform(post("/bid/list")
-                .with(httpBasic("auctioneer-user", "secret123"))
+                .header(HttpHeaders.AUTHORIZATION, bearer(token))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -165,12 +184,22 @@ class SecurityIntegrationTests {
     }
 
     @Test
-    void bidderCannotSpoofAnotherBidderId() throws Exception {
-        saveAccount("auctioneer-user", "secret123", "auctioneer@example.com", "Alex", AccountRole.AUCTIONEER);
-        saveAccount("bidder-user", "secret123", "bidder@example.com", "Taylor", AccountRole.BIDDER);
+    void bidderTokenCannotSpoofAnotherBidderId() throws Exception {
+        String auctioneerToken = registerAndGetToken(
+            "auctioneer-user",
+            "auctioneer@example.com",
+            "Alex",
+            "AUCTIONEER"
+        );
+        String bidderToken = registerAndGetToken(
+            "bidder-user",
+            "bidder@example.com",
+            "Taylor",
+            "BIDDER"
+        );
 
         mockMvc.perform(post("/bid/list")
-                .with(httpBasic("auctioneer-user", "secret123"))
+                .header(HttpHeaders.AUTHORIZATION, bearer(auctioneerToken))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -182,7 +211,7 @@ class SecurityIntegrationTests {
             .andExpect(status().isOk());
 
         mockMvc.perform(post("/bid/item-1")
-                .with(httpBasic("bidder-user", "secret123"))
+                .header(HttpHeaders.AUTHORIZATION, bearer(bidderToken))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
@@ -194,25 +223,17 @@ class SecurityIntegrationTests {
             .andExpect(content().string(containsString("Authenticated user does not match bidderId")));
     }
 
-    private void saveAccount(String username,
-                             String rawPassword,
-                             String email,
-                             String displayName,
-                             AccountRole role) {
-        UserAccount account = new UserAccount();
-        account.setUsername(username);
-        account.setEmail(email);
-        account.setDisplayName(displayName);
-        account.setPasswordHash(passwordEncoder.encode(rawPassword));
-        account.setRole(role);
-        account.setCreatedAt(Instant.now());
-        userAccountRepo.save(account);
+    private String registerAndGetToken(String username, String email, String displayName, String role) {
+        return authService.register(new RegisterRequest(
+            username,
+            email,
+            "secret123",
+            displayName,
+            role
+        )).accessToken();
+    }
 
-        if (role == AccountRole.BIDDER) {
-            bidderRepo.save(new Bidder(username, displayName));
-        }
-        if (role == AccountRole.AUCTIONEER) {
-            auctioneerRepo.save(new Auctioneer(username, displayName));
-        }
+    private String bearer(String token) {
+        return "Bearer " + token;
     }
 }

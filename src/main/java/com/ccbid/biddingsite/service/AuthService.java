@@ -2,15 +2,23 @@ package com.ccbid.biddingsite.service;
 
 import java.time.Instant;
 import java.util.Locale;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.JwsHeader;
+import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ccbid.biddingsite.dto.AuthLoginRequest;
 import com.ccbid.biddingsite.dto.AuthResponse;
+import com.ccbid.biddingsite.dto.AuthSessionResponse;
 import com.ccbid.biddingsite.dto.RegisterRequest;
 import com.ccbid.biddingsite.models.AccountRole;
 import com.ccbid.biddingsite.models.Auctioneer;
@@ -35,8 +43,14 @@ public class AuthService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private JwtEncoder jwtEncoder;
+
+    @Value("${app.security.jwt-expiration-seconds:86400}")
+    private long jwtExpirationSeconds;
+
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
+    public AuthSessionResponse register(RegisterRequest request) {
         String username = normalizeRequired(request.username(), "username");
         String email = normalizeEmail(request.email());
         String password = normalizeRequired(request.password(), "password");
@@ -60,11 +74,11 @@ public class AuthService {
 
         UserAccount saved = userAccountRepo.save(account);
         ensureRoleProfile(saved);
-        return toResponse(saved);
+        return toSession(saved);
     }
 
     @Transactional(readOnly = true)
-    public AuthResponse login(AuthLoginRequest request) {
+    public AuthSessionResponse login(AuthLoginRequest request) {
         String username = normalizeRequired(request.username(), "username");
         String password = normalizeRequired(request.password(), "password");
         UserAccount account = getRequiredAccount(username);
@@ -73,7 +87,7 @@ public class AuthService {
             throw new BadCredentialsException("Invalid username or password");
         }
 
-        return toResponse(account);
+        return toSession(account);
     }
 
     @Transactional(readOnly = true)
@@ -104,6 +118,29 @@ public class AuthService {
             account.getRole().name(),
             account.getRole() == AccountRole.ADMIN ? null : account.getUsername()
         );
+    }
+
+    private AuthSessionResponse toSession(UserAccount account) {
+        return new AuthSessionResponse(createToken(account), "Bearer", toResponse(account));
+    }
+
+    private String createToken(UserAccount account) {
+        Instant issuedAt = Instant.now();
+        Instant expiresAt = issuedAt.plusSeconds(jwtExpirationSeconds);
+
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+            .issuer("ccbid")
+            .issuedAt(issuedAt)
+            .expiresAt(expiresAt)
+            .subject(account.getUsername())
+            .claim("roles", List.of(account.getRole().name()))
+            .claim("displayName", account.getDisplayName())
+            .claim("email", account.getEmail())
+            .claim("profileId", account.getRole() == AccountRole.ADMIN ? null : account.getUsername())
+            .build();
+
+        JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
+        return jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
     }
 
     private AccountRole parseSignupRole(String rawRole) {

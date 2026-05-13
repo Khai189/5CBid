@@ -1,6 +1,10 @@
 package com.ccbid.biddingsite.config;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -10,19 +14,19 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import com.ccbid.biddingsite.models.UserAccount;
-import com.ccbid.biddingsite.repository.UserAccountRepo;
 
 @Configuration
 public class SecurityConfig {
@@ -33,8 +37,22 @@ public class SecurityConfig {
     }
 
     @Bean
-    public UserDetailsService userDetailsService(UserAccountRepo userAccountRepo) {
-        return username -> buildUserDetails(userAccountRepo, username);
+    public SecretKey jwtSecretKey(
+        @Value("${app.security.jwt-secret}") String jwtSecret
+    ) {
+        return new SecretKeySpec(jwtSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+    }
+
+    @Bean
+    public JwtEncoder jwtEncoder(SecretKey jwtSecretKey) {
+        return NimbusJwtEncoder.withSecretKey(jwtSecretKey).build();
+    }
+
+    @Bean
+    public JwtDecoder jwtDecoder(SecretKey jwtSecretKey) {
+        return NimbusJwtDecoder.withSecretKey(jwtSecretKey)
+            .macAlgorithm(MacAlgorithm.HS256)
+            .build();
     }
 
     @Bean
@@ -70,22 +88,28 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/bidders/add/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
-            .httpBasic(Customizer.withDefaults());
+            .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
 
         http.headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
         http.formLogin(AbstractHttpConfigurer::disable);
+        http.httpBasic(AbstractHttpConfigurer::disable);
         http.logout(AbstractHttpConfigurer::disable);
 
         return http.build();
     }
 
-    private UserDetails buildUserDetails(UserAccountRepo userAccountRepo, String username) {
-        UserAccount account = userAccountRepo.findByUsernameIgnoreCase(username)
-            .orElseThrow(() -> new UsernameNotFoundException("User " + username + " not found"));
+    @Bean
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtGrantedAuthoritiesConverter converter = new JwtGrantedAuthoritiesConverter();
+        converter.setAuthoritiesClaimName("roles");
+        converter.setAuthorityPrefix("ROLE_");
 
-        return User.withUsername(account.getUsername())
-            .password(account.getPasswordHash())
-            .roles(account.getRole().name())
-            .build();
+        JwtAuthenticationConverter authenticationConverter = new JwtAuthenticationConverter();
+        authenticationConverter.setJwtGrantedAuthoritiesConverter(jwt -> {
+            var authorities = converter.convert(jwt);
+            return authorities == null ? List.of() : authorities;
+        });
+        authenticationConverter.setPrincipalClaimName("sub");
+        return authenticationConverter;
     }
 }

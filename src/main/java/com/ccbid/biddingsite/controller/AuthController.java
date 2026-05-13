@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ccbid.biddingsite.dto.AuthLoginRequest;
 import com.ccbid.biddingsite.dto.AuthResponse;
+import com.ccbid.biddingsite.dto.AuthSessionResponse;
 import com.ccbid.biddingsite.dto.RegisterRequest;
 import com.ccbid.biddingsite.service.AuthService;
 
@@ -25,12 +26,12 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<AuthSessionResponse> register(@RequestBody RegisterRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
     }
 
     @PostMapping("/login")
-    public AuthResponse login(@RequestBody AuthLoginRequest request) {
+    public AuthSessionResponse login(@RequestBody AuthLoginRequest request) {
         return authService.login(request);
     }
 
