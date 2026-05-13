@@ -3,8 +3,7 @@ package com.ccbid.biddingsite.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,8 +32,8 @@ public class BidController {
     private AuthService authService;
 
     @PostMapping("/list")
-    public String listItem(@AuthenticationPrincipal UserDetails principal, @RequestBody ListItemRequest req) {
-        UserAccount account = authService.getRequiredAccount(principal.getUsername());
+    public String listItem(Authentication authentication, @RequestBody ListItemRequest req) {
+        UserAccount account = authService.getRequiredAccount(authentication.getName());
         ItemBid bid = service.addItem(
             req.itemId(),
             req.itemName(),
@@ -47,16 +46,16 @@ public class BidController {
     }
 
     @PostMapping("/{itemId}")
-    public String placeBid(@AuthenticationPrincipal UserDetails principal,
+    public String placeBid(Authentication authentication,
                            @PathVariable String itemId,
                            @RequestBody PlaceBidRequest req) {
         if (req.amount() == null) {
             throw new IllegalArgumentException("amount is required");
         }
-        if (req.bidderId() != null && !req.bidderId().isBlank() && !req.bidderId().equals(principal.getUsername())) {
+        if (req.bidderId() != null && !req.bidderId().isBlank() && !req.bidderId().equals(authentication.getName())) {
             throw new IllegalArgumentException("Authenticated user does not match bidderId");
         }
-        return service.placeBid(itemId, principal.getUsername(), req.amount());
+        return service.placeBid(itemId, authentication.getName(), req.amount());
     }
 
     @GetMapping("/{itemId}/highest")
@@ -70,19 +69,19 @@ public class BidController {
     }
 
     @DeleteMapping("/{itemId}")
-    public String removeOwnBid(@AuthenticationPrincipal UserDetails principal,
+    public String removeOwnBid(Authentication authentication,
                                @PathVariable String itemId) {
-        return service.removeBid(itemId, principal.getUsername());
+        return service.removeBid(itemId, authentication.getName());
     }
 
     @DeleteMapping("/{itemId}/{bidderId}")
-    public String removeBid(@AuthenticationPrincipal UserDetails principal,
+    public String removeBid(Authentication authentication,
                             @PathVariable String itemId,
                             @PathVariable String bidderId) {
-        if (!isAdmin(principal) && !principal.getUsername().equals(bidderId)) {
+        if (!isAdmin(authentication) && !authentication.getName().equals(bidderId)) {
             throw new IllegalArgumentException("Authenticated user does not match bidderId");
         }
-        String effectiveBidderId = isAdmin(principal) ? bidderId : principal.getUsername();
+        String effectiveBidderId = isAdmin(authentication) ? bidderId : authentication.getName();
         return service.removeBid(itemId, effectiveBidderId);
     }
 
@@ -96,8 +95,8 @@ public class BidController {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
     }
 
-    private boolean isAdmin(UserDetails principal) {
-        return principal.getAuthorities().stream()
+    private boolean isAdmin(Authentication authentication) {
+        return authentication.getAuthorities().stream()
             .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
     }
 }
