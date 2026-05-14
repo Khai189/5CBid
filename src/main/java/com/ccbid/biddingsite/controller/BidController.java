@@ -17,6 +17,7 @@ import com.ccbid.biddingsite.dataStructures.ItemBid;
 import com.ccbid.biddingsite.dto.ActiveBidSummaryResponse;
 import com.ccbid.biddingsite.dto.BidHistorySummaryResponse;
 import com.ccbid.biddingsite.dto.ListItemRequest;
+import com.ccbid.biddingsite.dto.ListItemResponse;
 import com.ccbid.biddingsite.dto.PlaceBidRequest;
 import com.ccbid.biddingsite.models.ItemCondition;
 import com.ccbid.biddingsite.models.UserAccount;
@@ -45,10 +46,9 @@ public class BidController {
     private AuthService authService;
 
     @PostMapping("/list")
-    public String listItem(Authentication authentication, @RequestBody ListItemRequest req) {
+    public ListItemResponse listItem(Authentication authentication, @RequestBody ListItemRequest req) {
         UserAccount account = authService.getRequiredAccount(authentication.getName());
         ItemBid bid = service.addItem(
-            req.itemId(),
             req.itemName(),
             req.startingPrice(),
             req.description(),
@@ -56,8 +56,14 @@ public class BidController {
             account.getUsername(),
             account.getDisplayName()
         );
-        return "Listed " + bid.getItem().getItemId() + " (" + bid.getItem().getItemName()
-            + ") by auctioneer " + bid.getAuctioneer().getAuctioneerId();
+        return new ListItemResponse(
+            bid.getItem().getItemId(),
+            bid.getItem().getItemName(),
+            bid.getAuctioneer().getAuctioneerId(),
+            bid.getAuctioneer().getName(),
+            "Listed " + bid.getItem().getItemId() + " (" + bid.getItem().getItemName()
+                + ") by auctioneer " + bid.getAuctioneer().getAuctioneerId()
+        );
     }
 
     @PostMapping("/{itemId}")
@@ -103,6 +109,11 @@ public class BidController {
             return service.getBidHistoryForAuctioneer(authentication.getName());
         }
         return service.getBidHistoryForBidder(authentication.getName());
+    }
+
+    @GetMapping("/expired")
+    public Iterable<BidHistorySummaryResponse> getExpiredBidOutcomes() {
+        return service.getExpiredBidOutcomes();
     }
 
     @DeleteMapping("/{itemId}")

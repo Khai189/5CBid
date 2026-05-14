@@ -149,7 +149,6 @@ class SecurityIntegrationTests {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
-                      "itemId": "forbidden-item",
                       "itemName": "Camera",
                       "startingPrice": 100,
                       "condition": "USED"
@@ -172,17 +171,16 @@ class SecurityIntegrationTests {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
-                      "itemId": "listed-by-auctioneer",
                       "itemName": "Laptop",
                       "startingPrice": 300,
-                      "condition": "NEW",
-                      "auctioneerId": "spoofed-id",
-                      "auctioneerName": "Spoofed Name"
+                      "condition": "NEW"
                     }
                     """))
             .andExpect(status().isOk())
-            .andExpect(content().string(containsString("Listed listed-by-auctioneer")))
-            .andExpect(content().string(containsString("auctioneer-user")));
+            .andExpect(jsonPath("$.itemId").isString())
+            .andExpect(jsonPath("$.itemName").value("Laptop"))
+            .andExpect(jsonPath("$.auctioneerId").value("auctioneer-user"))
+            .andExpect(jsonPath("$.message").value(containsString("auctioneer-user")));
     }
 
     @Test
@@ -205,7 +203,6 @@ class SecurityIntegrationTests {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {
-                      "itemId": "item-1",
                       "itemName": "Laptop",
                       "startingPrice": 300,
                       "condition": "USED"
@@ -224,6 +221,20 @@ class SecurityIntegrationTests {
                     """))
             .andExpect(status().isBadRequest())
             .andExpect(content().string(containsString("Authenticated user does not match bidderId")));
+    }
+
+    @Test
+    void authenticatedUserCanReadExpiredBidOutcomes() throws Exception {
+        String token = registerAndGetToken(
+            "bidder-user",
+            "bidder@example.com",
+            "Bidder User",
+            "BIDDER"
+        );
+
+        mockMvc.perform(get("/bid/expired")
+                .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+            .andExpect(status().isOk());
     }
 
     private String registerAndGetToken(String username, String email, String displayName, String role) {

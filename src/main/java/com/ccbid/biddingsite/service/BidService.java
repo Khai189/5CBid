@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.LinkedHashSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Locale;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -53,8 +55,14 @@ public class BidService {
 
     @Transactional
     public ItemBid addItem(BidItem item, Auctioneer auctioneer) {
-        if (item == null || item.getItemId() == null) {
-            throw new IllegalArgumentException("Item and itemId are required");
+        if (item == null) {
+            throw new IllegalArgumentException("Item is required");
+        }
+        if (item.getItemName() == null || item.getItemName().isBlank()) {
+            throw new IllegalArgumentException("itemName is required");
+        }
+        if (item.getItemId() == null || item.getItemId().isBlank()) {
+            item.setItemId(generateItemId(item.getItemName()));
         }
         if (item.getStartingPrice() == null || item.getStartingPrice() < 0.5d) {
             throw new IllegalArgumentException("Price must be equal to or above 50 cents");
@@ -80,10 +88,9 @@ public class BidService {
         return ib;
     }
 
-    public ItemBid addItem(String itemId, String itemName, Double startingPrice,
+    public ItemBid addItem(String itemName, Double startingPrice,
                            String description, ItemCondition condition, String auctioneerId, String auctioneerName) {
         BidItem item = new BidItem();
-        item.setItemId(itemId);
         item.setItemName(itemName);
         item.setStartingPrice(startingPrice);
         item.setDescription(description);
@@ -213,6 +220,11 @@ public class BidService {
             .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<BidHistorySummaryResponse> getExpiredBidOutcomes() {
+        return getAllBidHistory();
+    }
+
     @Transactional
     public String removeBid(String itemId, String bidderId) {
         itemRepo.findByItemId(itemId)
@@ -294,5 +306,23 @@ public class BidService {
             bids.size(),
             viewerOwnsListing
         );
+    }
+
+    private String generateItemId(String itemName) {
+        String slug = itemName == null ? "" : itemName.trim().toLowerCase(Locale.ROOT)
+            .replaceAll("[^a-z0-9]+", "-")
+            .replaceAll("^-+|-+$", "");
+        if (slug.isBlank()) {
+            slug = "listing";
+        }
+
+        for (int attempt = 0; attempt < 10; attempt++) {
+            String candidate = slug + "-" + UUID.randomUUID().toString().substring(0, 8);
+            if (!itemBids.containsKey(candidate) && !itemRepo.existsById(candidate)) {
+                return candidate;
+            }
+        }
+
+        return "listing-" + UUID.randomUUID();
     }
 }

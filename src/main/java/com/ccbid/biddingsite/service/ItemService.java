@@ -17,6 +17,9 @@ public class ItemService {
     private ItemRepo repo;
 
     public List<BidItem> getItems(String query, String auctioneerId, Double minPrice, Double maxPrice, String condition) {
+        if (maxPrice != null && maxPrice < 0.5d) {
+            throw new IllegalArgumentException("maxPrice must be at least 0.5");
+        }
         if (minPrice != null && maxPrice != null && minPrice > maxPrice) {
             throw new IllegalArgumentException("minPrice cannot be greater than maxPrice");
         }

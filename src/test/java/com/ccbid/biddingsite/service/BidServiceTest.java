@@ -10,6 +10,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.ccbid.biddingsite.dataStructures.ItemBid;
 import com.ccbid.biddingsite.models.Auctioneer;
 import com.ccbid.biddingsite.models.Bid;
 import com.ccbid.biddingsite.models.BidItem;
@@ -22,6 +23,7 @@ import com.ccbid.biddingsite.repository.ItemRepo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -141,6 +143,24 @@ class BidServiceTest {
         assertFalse(firstBid.isActive());
         assertFalse(highestBid.isActive());
         verify(bidRepo).saveAll(eq(activeBids));
+    }
+
+    @Test
+    void addItemGeneratesListingIdAutomatically() {
+        when(itemRepo.existsById(any(String.class))).thenReturn(false);
+
+        ItemBid created = service.addItem(
+            "Desk Lamp",
+            12.0,
+            "Warm desk light",
+            ItemCondition.USED,
+            "auctioneer-1",
+            "Alex"
+        );
+
+        assertNotNull(created.getItem().getItemId());
+        assertFalse(created.getItem().getItemId().isBlank());
+        assertEquals("Desk Lamp", created.getItem().getItemName());
     }
 
     private BidItem registerItem(String itemId, int startingPrice) {
