@@ -30,12 +30,27 @@ class ItemControllerTest {
     @Test
     void getItemsReturnsOk() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
-        when(itemService.getItems()).thenReturn(List.of(new BidItem()));
+        when(itemService.getItems(null, null, null, null)).thenReturn(List.of(new BidItem()));
 
         mockMvc.perform(get("/items/all"))
             .andExpect(status().isOk());
 
-        verify(itemService).getItems();
+        verify(itemService).getItems(null, null, null, null);
+    }
+
+    @Test
+    void getItemsPassesSearchFilters() throws Exception {
+        MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        when(itemService.getItems("bike", "seller-1", 25, 200)).thenReturn(List.of(new BidItem()));
+
+        mockMvc.perform(get("/items/all")
+                .param("query", "bike")
+                .param("auctioneerId", "seller-1")
+                .param("minPrice", "25")
+                .param("maxPrice", "200"))
+            .andExpect(status().isOk());
+
+        verify(itemService).getItems("bike", "seller-1", 25, 200);
     }
 
     @Test

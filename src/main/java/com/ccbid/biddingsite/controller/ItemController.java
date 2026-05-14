@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -28,8 +29,13 @@ public class ItemController {
     private ItemService service;
 
     @GetMapping("/all")
-    public Iterable<BidItem> getItems() {
-        return service.getItems();
+    public Iterable<BidItem> getItems(
+        @RequestParam(required = false) String query,
+        @RequestParam(required = false) String auctioneerId,
+        @RequestParam(required = false) Integer minPrice,
+        @RequestParam(required = false) Integer maxPrice
+    ) {
+        return service.getItems(query, auctioneerId, minPrice, maxPrice);
     }
 
     @GetMapping("/{itemId}")
@@ -40,5 +46,10 @@ public class ItemController {
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<String> handleConflict(IllegalStateException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleBadRequest(IllegalArgumentException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
     }
 }

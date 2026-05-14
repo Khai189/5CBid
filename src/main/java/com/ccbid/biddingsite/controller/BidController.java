@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ccbid.biddingsite.dataStructures.ItemBid;
+import com.ccbid.biddingsite.dto.ActiveBidSummaryResponse;
 import com.ccbid.biddingsite.dto.ListItemRequest;
 import com.ccbid.biddingsite.dto.PlaceBidRequest;
 import com.ccbid.biddingsite.models.UserAccount;
@@ -48,6 +49,7 @@ public class BidController {
             req.itemId(),
             req.itemName(),
             req.startingPrice(),
+            req.description(),
             account.getUsername(),
             account.getDisplayName()
         );
@@ -78,6 +80,17 @@ public class BidController {
         return "Highest on " + itemId + ": " + bidder + " @ " + amount;
     }
 
+    @GetMapping("/active")
+    public Iterable<ActiveBidSummaryResponse> getActiveBids(Authentication authentication) {
+        if (isAdmin(authentication)) {
+            return service.getAllActiveBidSummaries();
+        }
+        if (hasRole(authentication, "ROLE_AUCTIONEER")) {
+            return service.getActiveBidSummariesForAuctioneer(authentication.getName());
+        }
+        return service.getActiveBidSummariesForBidder(authentication.getName());
+    }
+
     @DeleteMapping("/{itemId}")
     public String removeOwnBid(Authentication authentication,
                                @PathVariable String itemId) {
@@ -106,7 +119,11 @@ public class BidController {
     }
 
     private boolean isAdmin(Authentication authentication) {
+        return hasRole(authentication, "ROLE_ADMIN");
+    }
+
+    private boolean hasRole(Authentication authentication, String role) {
         return authentication.getAuthorities().stream()
-            .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
+            .anyMatch(authority -> role.equals(authority.getAuthority()));
     }
 }

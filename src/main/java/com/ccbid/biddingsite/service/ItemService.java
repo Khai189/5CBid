@@ -1,5 +1,7 @@
 package com.ccbid.biddingsite.service;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.http.HttpStatus;
@@ -12,8 +14,11 @@ public class ItemService {
     @Autowired
     private ItemRepo repo;
 
-    public Iterable<BidItem> getItems() {
-        return repo.findAll();
+    public List<BidItem> getItems(String query, String auctioneerId, Integer minPrice, Integer maxPrice) {
+        if (minPrice != null && maxPrice != null && minPrice > maxPrice) {
+            throw new IllegalArgumentException("minPrice cannot be greater than maxPrice");
+        }
+        return repo.searchItems(query, auctioneerId, minPrice, maxPrice);
     }
 
     public BidItem getItem(String itemId) {

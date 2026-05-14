@@ -1,6 +1,7 @@
 package com.ccbid.biddingsite.service;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ccbid.biddingsite.dataStructures.ItemBid;
+import com.ccbid.biddingsite.dto.ActiveBidSummaryResponse;
 import com.ccbid.biddingsite.models.Auctioneer;
 import com.ccbid.biddingsite.models.Bid;
 import com.ccbid.biddingsite.models.BidItem;
@@ -69,11 +71,12 @@ public class BidService {
     }
 
     public ItemBid addItem(String itemId, String itemName, Integer startingPrice,
-                           String auctioneerId, String auctioneerName) {
+                           String description, String auctioneerId, String auctioneerName) {
         BidItem item = new BidItem();
         item.setItemId(itemId);
         item.setItemName(itemName);
         item.setStartingPrice(startingPrice);
+        item.setDescription(description);
         Auctioneer auctioneer = new Auctioneer();
         auctioneer.setAuctioneerId(auctioneerId);
         auctioneer.setName(auctioneerName);
@@ -124,6 +127,47 @@ public class BidService {
         return getItem(itemId).getHighestBidder();
     }
 
+    @Transactional(readOnly = true)
+    public List<ActiveBidSummaryResponse> getActiveBidSummariesForBidder(String bidderId) {
+        List<ActiveBidSummaryResponse> summaries = new ArrayList<>();
+        List<String> itemIds = bidRepo.findAllByBidderIdAndActiveTrueOrderByCreatedAtAsc(bidderId).stream()
+            .map(Bid::getItemId)
+            .distinct()
+            .sorted()
+            .toList();
+
+        for (String itemId : itemIds) {
+            ItemBid itemBid = itemBids.get(itemId);
+            if (itemBid != null) {
+                summaries.add(toSummary(itemBid, bidderId, false));
+            }
+        }
+        return summaries;
+    }
+
+    @Transactional(readOnly = true)
+    public List<ActiveBidSummaryResponse> getActiveBidSummariesForAuctioneer(String auctioneerId) {
+        List<ActiveBidSummaryResponse> summaries = new ArrayList<>();
+        for (BidItem item : itemRepo.findAllByAuctioneer_AuctioneerIdOrderByItemIdAsc(auctioneerId)) {
+            ItemBid itemBid = itemBids.get(item.getItemId());
+            if (itemBid != null) {
+                summaries.add(toSummary(itemBid, null, true));
+            }
+        }
+        return summaries;
+    }
+
+    @Transactional(readOnly = true)
+    public List<ActiveBidSummaryResponse> getAllActiveBidSummaries() {
+        return itemRepo.findAll().stream()
+            .map(BidItem::getItemId)
+            .sorted()
+            .map(itemBids::get)
+            .filter(itemBid -> itemBid != null)
+            .map(itemBid -> toSummary(itemBid, null, false))
+            .toList();
+    }
+
     @Transactional
     public String removeBid(String itemId, String bidderId) {
         ItemBid bid = getItem(itemId);
@@ -136,5 +180,27 @@ public class BidService {
             bid.removeBid(bidderId);
             return "Removed bid by " + bidderId + " on " + itemId;
         }
+    }
+
+    private ActiveBidSummaryResponse toSummary(ItemBid itemBid, String viewerBidderId, boolean viewerOwnsListing) {
+        BidItem item = itemBid.getItem();
+        Auctioneer auctioneer = itemBid.getAuctioneer();
+        String highestBidderId = itemBid.getHighestBidder();
+        int highestBidAmount = itemBid.getHighestBid();
+        Integer viewerBidAmount = viewerBidderId == null ? null : itemBid.getHashMap().get(viewerBidderId);
+
+        return new ActiveBidSummaryResponse(
+            item.getItemId(),
+            item.getItemName(),
+            item.getDescription(),
+            item.getStartingPrice(),
+            auctioneer == null ? null : auctioneer.getAuctioneerId(),
+            auctioneer == null ? null : auctioneer.getName(),
+            highestBidderId,
+            highestBidAmount < 0 ? null : highestBidAmount,
+            viewerBidAmount,
+            viewerBidAmount != null && viewerBidAmount.equals(highestBidAmount),
+            viewerOwnsListing
+        );
     }
 }

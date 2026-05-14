@@ -21,6 +21,7 @@ import com.ccbid.biddingsite.repository.ItemRepo;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -82,6 +83,47 @@ class BidServiceTest {
     }
 
     @Test
+    void activeBidSummariesForBidderIncludeHighestBidAndViewerBid() {
+        registerItem("item-4", 50);
+        when(bidderRepo.findById("bidder-1")).thenReturn(Optional.of(new Bidder("bidder-1", "Sam")));
+        when(bidderRepo.findById("bidder-2")).thenReturn(Optional.of(new Bidder("bidder-2", "Alex")));
+        when(bidRepo.save(any(Bid.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(bidRepo.findAllByBidderIdAndActiveTrueOrderByCreatedAtAsc("bidder-1"))
+            .thenReturn(List.of(new Bid(1L, "item-4", "bidder-1", 60, null, true)));
+
+        service.placeBid("item-4", "bidder-1", 60);
+        service.placeBid("item-4", "bidder-2", 80);
+
+        var summaries = service.getActiveBidSummariesForBidder("bidder-1");
+
+        assertEquals(1, summaries.size());
+        assertEquals("item-4", summaries.getFirst().itemId());
+        assertEquals("bidder-2", summaries.getFirst().highestBidderId());
+        assertEquals(80, summaries.getFirst().highestBidAmount());
+        assertEquals(60, summaries.getFirst().viewerBidAmount());
+    }
+
+    @Test
+    void activeBidSummariesForAuctioneerIncludeHighestBidderAndAmount() {
+        BidItem item = registerItem("item-5", 75);
+        item.setDescription("Dorm fridge");
+        when(itemRepo.findAllByAuctioneer_AuctioneerIdOrderByItemIdAsc("auctioneer-1")).thenReturn(List.of(item));
+        when(bidderRepo.findById("bidder-1")).thenReturn(Optional.of(new Bidder("bidder-1", "Sam")));
+        when(bidRepo.save(any(Bid.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.placeBid("item-5", "bidder-1", 95);
+
+        var summaries = service.getActiveBidSummariesForAuctioneer("auctioneer-1");
+
+        assertEquals(1, summaries.size());
+        assertEquals("item-5", summaries.getFirst().itemId());
+        assertEquals("Dorm fridge", summaries.getFirst().description());
+        assertEquals("bidder-1", summaries.getFirst().highestBidderId());
+        assertEquals(95, summaries.getFirst().highestBidAmount());
+        assertNull(summaries.getFirst().viewerBidAmount());
+    }
+
+    @Test
     void removeBidMarksActiveBidsInactive() {
         registerItem("item-3", 100);
         service.getItem("item-3").addBid("bidder-1", 175);
@@ -100,7 +142,7 @@ class BidServiceTest {
         verify(bidRepo).saveAll(eq(activeBids));
     }
 
-    private void registerItem(String itemId, int startingPrice) {
+    private BidItem registerItem(String itemId, int startingPrice) {
         when(itemRepo.existsById(itemId)).thenReturn(false);
 
         BidItem item = new BidItem();
@@ -113,5 +155,6 @@ class BidServiceTest {
         auctioneer.setName("Alex");
 
         service.addItem(item, auctioneer);
+        return item;
     }
 }
