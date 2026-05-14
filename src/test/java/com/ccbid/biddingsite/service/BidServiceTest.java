@@ -63,7 +63,7 @@ class BidServiceTest {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
             () -> service.placeBid("item-1", "bidder-1", 90));
 
-        assertEquals("Bid 90 is below starting price 100", ex.getMessage());
+        assertEquals("Bid 90 is below starting price 100.0", ex.getMessage());
     }
 
     @Test

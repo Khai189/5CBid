@@ -151,7 +151,8 @@ class SecurityIntegrationTests {
                     {
                       "itemId": "forbidden-item",
                       "itemName": "Camera",
-                      "startingPrice": 100
+                      "startingPrice": 100,
+                      "condition": "USED"
                     }
                     """))
             .andExpect(status().isForbidden());
@@ -174,6 +175,7 @@ class SecurityIntegrationTests {
                       "itemId": "listed-by-auctioneer",
                       "itemName": "Laptop",
                       "startingPrice": 300,
+                      "condition": "NEW",
                       "auctioneerId": "spoofed-id",
                       "auctioneerName": "Spoofed Name"
                     }
@@ -205,7 +207,8 @@ class SecurityIntegrationTests {
                     {
                       "itemId": "item-1",
                       "itemName": "Laptop",
-                      "startingPrice": 300
+                      "startingPrice": 300,
+                      "condition": "USED"
                     }
                     """))
             .andExpect(status().isOk());
