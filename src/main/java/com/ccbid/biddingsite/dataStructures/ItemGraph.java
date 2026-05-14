@@ -6,6 +6,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.PriorityQueue;
 
+/**
+ * A weighted graph implementation 
+ * 
+ * This class represents a graph using an adjacency list. 
+ * Vertices are mapped to their neighbors and 
+ * corresponding edge weights.  
+ *  
+ * @param <T> The type of the vertex
+ */
 public class ItemGraph<T> {
     private final Map<T, Map<T, Integer>> adjList = new HashMap<>();
 
@@ -17,6 +26,16 @@ public class ItemGraph<T> {
         adjList.clear();
     }
 
+    /**
+     * Adds a weighted edge between two vertices 
+     *  
+     * If vertices do not exist, they are created. If they already exist, the edge with the 
+     * minimum weight is retained. 
+     * @param from (T) The starting vertex
+     * @param to (T) The ending vertex
+     * @param weight (Integer) The cost/distance of the edge 
+     * @param bidirectional (Boolean) If true, adds an edge with the same weight 
+     */
     public void addEdge(T from, T to, int weight, boolean bidirectional) {
         if (weight <= 0) {
             throw new IllegalArgumentException("weight must be positive");
@@ -64,6 +83,12 @@ public class ItemGraph<T> {
         return adjList.get(from).get(to);
     }
 
+    /**
+     * Calculates the shortest distance from the source vertex to all the reachable 
+     * vertices using Dikjstra's Algorithm 
+     * @param source (T) The vertex to start the search from
+     * @return A map where keys are reachable vertices and values are minimum distances.
+     */
     public Map<T, Integer> getShortestPaths(T source) {
         if (!adjList.containsKey(source)) {
             return Collections.emptyMap();
