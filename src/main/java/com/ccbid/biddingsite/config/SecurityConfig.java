@@ -28,6 +28,16 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+/**
+ * This is the security config for the application and handles all of the security related issues and beans 
+ * Important Methods:
+ * Password Encoder: Bean for encoding passwords using BCrypt which is an encryption method considered to be pretty secure
+ * JWT Secret Key: Bean for the secret key used to sign JWTs which are how the frontend and backend stay secure
+ * JWT Encoder: Bean for encoding JWTs using the secret key
+ * JWT Decoder: Bean for decoding JWTs using the secret key
+ * CORS Configuration Source: Bean for configuring CORS, this allows the frontend to make requests to the backend and the backend can block all other requests
+ */
+
 @Configuration
 public class SecurityConfig {
 

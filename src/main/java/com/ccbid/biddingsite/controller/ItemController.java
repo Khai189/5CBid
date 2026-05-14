@@ -12,6 +12,14 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ccbid.biddingsite.models.BidItem;
 import com.ccbid.biddingsite.service.ItemService;
 
+/**
+ * This is the controller for handling all the item requests
+ * Important Methods:
+ * Get Items: Returns a list of all the items
+ * Get Item: Returns a specific item based on its ID
+ * Exception Handlers: Handles exceptions for conflicts (Codex helped generate this, prompt is menntionned in other controllers)
+ */
+
 @RestController
 @RequestMapping("/items")
 public class ItemController {
