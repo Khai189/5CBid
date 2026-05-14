@@ -96,7 +96,7 @@ This makes the project closer to a real application that students at the 5C can 
 ## Repository Notes
 
 - Backend code lives in `demo/`
-- The separate Next.js frontend lives in `/Users/husamkm/CS62FinalFrontend`
+- The separate Next.js frontend lives in [/CS62FinalFrontend](https://github.com/Khai189/CS62FinalFrontend)
 - There is no `/lib` folder of committed `.jar` files because this project uses Maven dependencies from `demo/pom.xml`
 
 ## How To Run The Code
