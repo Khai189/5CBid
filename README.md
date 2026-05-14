@@ -1,3 +1,94 @@
+# 5C Bid
+A campus-centered auction platform for students at the Claremont Colleges to buy and sell used furniture, dorm supplies, clothing, and other secondhand items.
+
+This project was created for CS62 as a final project focused on using custom data structures to solve a real-world software problem. Our goal is to make student move-out and move-in easier, cheaper, and safer by giving students a 5C-specific alternative to Facebook Marketplace, eBay, or ReCoop.
+
+## Project Overview 
+
+At the end of every year, students often have furniture, dorm decorations, appliances, clothes, and other items they no longer need. Many students either throw these items away, donate them, or post informal listings through Google Docs, Slides, group chats, or Chirps. 
+
+Existing options have limitations:
+
+- ReCoop is convenient, but students do not receive money back for their items.
+- Facebook Marketplace and eBay are not tailored to the 5Cs.
+- Outside marketplaces can create safety, transportation, and trust concerns.
+- Informal student listings can be hard to search, filter, or organize.
+
+Our platform solves this problem by allowing students to create auctions, place bids, filter listings, view their history, and receive recommendations based on their buying habits.
+
+## Features
+
+### Bidding System
+
+Auctioneers can create listings for items they want to sell, and bidders can place bids on those items. The system keeps track of the current highest bid so that users can compete fairly and see whether they are winning an auction.
+
+### Auctioneer and Bidder Roles
+Users can interact with the platform either as auctioneers or bidders.
+
+Auctioneers can:
+
+- Create item listings
+- Set up auctions
+- View their current and past auctions
+
+Bidders can:
+
+- Browse available items
+- Place bids
+- View their bid history
+- Track auctions they have participated in
+
+### Filters
+
+Users can filter for specific items they are looking for. This makes it easier to find relevant listings instead of scrolling through everything. 
+
+For example: 
+
+- Searching for a lamp
+- Filtering for furniture
+- Looking for items within a certain price range
+
+### Recommendation System
+
+The recommendation system suggests items based on a user’s spending behavior. For example, if a user typically buys items under $10, the platform can prioritize cheaper items first.
+
+This supports the affordability aspect of the project by helping students find items that match their budget.
+
+### History Tab
+
+The history tab allows users to view their past activity on the platform.
+
+Users can see:
+
+- Previous bids
+- Past auctions
+- Items they have listed
+- Items they have interacted with
+
+This makes the platform easier to navigate and helps users keep track of their marketplace activity over time.
+
+### Login and Registration Security
+
+As an extra credit feature, the platform includes a full security setup. Users must register and log in before accessing the site.
+
+This is important because the platform is meant to serve a student community where trust, safety, and accountability matter, and students want to use a website that ensures their information remains secure.
+
+### Full Deployment
+
+Another extra credit feature, the project is designed as a full-stack deployed application with:
+
+- Spring backend
+- Next.js frontend
+- Database-backed item and user information
+
+This makes the project closer to a real application that students at the 5C can actually use. 
+
+
+
+
+
+
+
 # CS62 Final Project Backend
 
 5CBid is a Spring Boot + PostgreSQL backend for a 5C student bidding marketplace. It supports account creation, JWT login, item listing, bidding, highest-bid lookup, bid removal, and recommendation/feed generation based on bidding history. A typical run looks like this: a seller creates an auctioneer account, posts a listing, a bidder signs in and places a bid, and the recommendation/feed endpoints return related items based on the bidder's activity.
