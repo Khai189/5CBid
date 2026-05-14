@@ -17,6 +17,11 @@ import jakarta.persistence.UniqueConstraint;
     @UniqueConstraint(name = "uk_user_accounts_username", columnNames = "username"),
     @UniqueConstraint(name = "uk_user_accounts_email", columnNames = "email")
 })
+/**
+ * Identity entity representing a user's account credentials and profile 
+ * 
+ * This class authenticates and authorizes sensitive login information 
+ */
 public class UserAccount {
 
     @Id

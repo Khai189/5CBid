@@ -19,6 +19,12 @@ import lombok.NoArgsConstructor;
     @Index(name = "idx_bid_item_active", columnList = "itemId,active"),
     @Index(name = "idx_bid_item_bidder_active", columnList = "itemId,bidderId,active")
 })
+/**
+ * This class represents a single bid entry in the database 
+ *  
+ * Masp to the bids table and includes indexes optimized for retrieving
+ * active bids by item and bidder 
+ */
 public class Bid {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

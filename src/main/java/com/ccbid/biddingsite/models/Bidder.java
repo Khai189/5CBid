@@ -8,6 +8,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
+/**
+ * Represents a participant bidding in the auction system 
+ * 
+ * Bidders can place bids on various items; tracks identity details 
+ * for bidding actions
+ */
 public class Bidder {
     @Id
     private String bidderId;

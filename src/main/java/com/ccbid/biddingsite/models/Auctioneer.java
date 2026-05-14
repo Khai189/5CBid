@@ -12,6 +12,14 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Entity
 @Table(name = "auctioneers")
+/**
+ * Initializes a new auction session for a specific time 
+ * 
+ * @param itemID unique identifier for the item 
+ * @param itemName display name of the item 
+ * @param startingPrice initial price at which bidding begins 
+ * @param description detailed description of item's condition 
+ */
 public class Auctioneer {
     @Id
     private String auctioneerId;

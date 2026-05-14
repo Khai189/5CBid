@@ -13,6 +13,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Entity
 @Table(name = "items")
+/**
+ * Represents an item for auction 
+ * 
+ * Maintains item's value, relationship to auctioneer, etc. 
+ * Primary reference for all bids placed in the system 
+ */
 public class BidItem {
     @Id
     private String itemId;
