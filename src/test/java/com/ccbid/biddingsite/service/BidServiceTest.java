@@ -16,6 +16,7 @@ import com.ccbid.biddingsite.models.Bid;
 import com.ccbid.biddingsite.models.BidItem;
 import com.ccbid.biddingsite.models.Bidder;
 import com.ccbid.biddingsite.models.ItemCondition;
+import com.ccbid.biddingsite.models.ListingDurationUnit;
 import com.ccbid.biddingsite.repository.AuctioneerRepo;
 import com.ccbid.biddingsite.repository.BidRepo;
 import com.ccbid.biddingsite.repository.BidderRepo;
@@ -154,6 +155,8 @@ class BidServiceTest {
             12.0,
             "Warm desk light",
             ItemCondition.USED,
+            1,
+            ListingDurationUnit.DAYS,
             "auctioneer-1",
             "Alex"
         );

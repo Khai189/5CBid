@@ -73,6 +73,7 @@ class ItemServiceTest {
 
         when(itemRepo.findAllByArchivedFalseOrderByItemIdAsc()).thenReturn(List.of(item));
         when(bidService.getLiveItemBidOrNull("item-1")).thenReturn(itemBid);
+        when(bidService.getActiveBidCount("item-1")).thenReturn(2);
 
         var summary = itemService.getItems(null, null, null, null, null).getFirst();
 

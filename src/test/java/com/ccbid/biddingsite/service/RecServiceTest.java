@@ -26,6 +26,9 @@ class RecServiceTest {
     @Mock
     private BidRepo bidRepo;
 
+    @Mock
+    private BidService bidService;
+
     @InjectMocks
     private RecService recService;
 

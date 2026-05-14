@@ -1,5 +1,7 @@
 package com.ccbid.biddingsite.models;
 
+import java.time.Instant;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -38,6 +40,8 @@ public class BidItem {
 
     @Column(nullable = false)
     private boolean archived;
+
+    private Instant expiresAt;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "auctioneer_id")
@@ -89,6 +93,14 @@ public class BidItem {
 
     public void setArchived(boolean archived) {
         this.archived = archived;
+    }
+
+    public Instant getExpiresAt() {
+        return expiresAt;
+    }
+
+    public void setExpiresAt(Instant expiresAt) {
+        this.expiresAt = expiresAt;
     }
 
     public Auctioneer getAuctioneer() {

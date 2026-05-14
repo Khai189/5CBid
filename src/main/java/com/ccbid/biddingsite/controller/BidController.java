@@ -20,6 +20,7 @@ import com.ccbid.biddingsite.dto.ListItemRequest;
 import com.ccbid.biddingsite.dto.ListItemResponse;
 import com.ccbid.biddingsite.dto.PlaceBidRequest;
 import com.ccbid.biddingsite.models.ItemCondition;
+import com.ccbid.biddingsite.models.ListingDurationUnit;
 import com.ccbid.biddingsite.models.UserAccount;
 import com.ccbid.biddingsite.service.AuthService;
 import com.ccbid.biddingsite.service.BidService;
@@ -53,6 +54,8 @@ public class BidController {
             req.startingPrice(),
             req.description(),
             parseCondition(req.condition()),
+            parseDurationAmount(req.durationAmount()),
+            parseDurationUnit(req.durationUnit()),
             account.getUsername(),
             account.getDisplayName()
         );
@@ -61,6 +64,7 @@ public class BidController {
             bid.getItem().getItemName(),
             bid.getAuctioneer().getAuctioneerId(),
             bid.getAuctioneer().getName(),
+            bid.getItem().getExpiresAt(),
             "Listed " + bid.getItem().getItemId() + " (" + bid.getItem().getItemName()
                 + ") by auctioneer " + bid.getAuctioneer().getAuctioneerId()
         );
@@ -160,6 +164,24 @@ public class BidController {
             return ItemCondition.valueOf(condition.trim().toUpperCase().replace(' ', '_'));
         } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException("condition must be NEW, USED, or HIGHLY_DAMAGED");
+        }
+    }
+
+    private int parseDurationAmount(Integer durationAmount) {
+        if (durationAmount == null || durationAmount < 1) {
+            throw new IllegalArgumentException("durationAmount must be at least 1");
+        }
+        return durationAmount;
+    }
+
+    private ListingDurationUnit parseDurationUnit(String durationUnit) {
+        if (durationUnit == null || durationUnit.isBlank()) {
+            throw new IllegalArgumentException("durationUnit is required");
+        }
+        try {
+            return ListingDurationUnit.valueOf(durationUnit.trim().toUpperCase().replace(' ', '_'));
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("durationUnit must be HOURS, DAYS, WEEKS, or MONTHS");
         }
     }
 }

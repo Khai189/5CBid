@@ -25,6 +25,7 @@ public class RecService {
 
     @Autowired private ItemRepo itemRepo;
     @Autowired private BidRepo bidRepo;
+    @Autowired private BidService bidService;
 
     private final ItemGraph<String> itemGraph = new ItemGraph<>();
     private final Map<String, BidItem> itemsById = new HashMap<>();
@@ -32,10 +33,12 @@ public class RecService {
     @PostConstruct
     @Transactional(readOnly = true)
     public void rehydrate() {
+        bidService.expireStaleListings();
         rebuildGraph();
     }
 
     public List<BidItem> getRecommendations(String bidderId, String itemId, int totalRecs) {
+        bidService.expireStaleListings();
         rebuildGraph();
         if (totalRecs <= 0) {
             return List.of();
@@ -50,6 +53,7 @@ public class RecService {
     }
 
     public List<BidItem> getFeed(String bidderId) {
+        bidService.expireStaleListings();
         rebuildGraph();
         Set<String> bidderHistory = getBidderHistory(bidderId);
         if (bidderHistory.isEmpty()) {

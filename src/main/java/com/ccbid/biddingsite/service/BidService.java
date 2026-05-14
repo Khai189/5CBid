@@ -1,6 +1,9 @@
 package com.ccbid.biddingsite.service;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -22,6 +25,7 @@ import com.ccbid.biddingsite.models.Bid;
 import com.ccbid.biddingsite.models.BidItem;
 import com.ccbid.biddingsite.models.Bidder;
 import com.ccbid.biddingsite.models.ItemCondition;
+import com.ccbid.biddingsite.models.ListingDurationUnit;
 import com.ccbid.biddingsite.repository.AuctioneerRepo;
 import com.ccbid.biddingsite.repository.BidRepo;
 import com.ccbid.biddingsite.repository.BidderRepo;
@@ -31,6 +35,7 @@ import jakarta.annotation.PostConstruct;
 
 @Service
 public class BidService {
+    private static final Duration DEFAULT_LISTING_DURATION = Duration.ofDays(7);
 
     private final Map<String, ItemBid> itemBids = new ConcurrentHashMap<>();
 
@@ -42,6 +47,8 @@ public class BidService {
     @PostConstruct
     @Transactional(readOnly = true)
     public void rehydrate() {
+        expireStaleListings();
+        itemBids.clear();
         for (BidItem item : itemRepo.findAllByArchivedFalseOrderByItemIdAsc()) {
             itemBids.put(item.getItemId(), new ItemBid(item.getAuctioneer(), item));
         }
@@ -55,6 +62,7 @@ public class BidService {
 
     @Transactional
     public ItemBid addItem(BidItem item, Auctioneer auctioneer) {
+        expireStaleListings();
         if (item == null) {
             throw new IllegalArgumentException("Item is required");
         }
@@ -69,6 +77,12 @@ public class BidService {
         }
         if (item.getCondition() == null) {
             throw new IllegalArgumentException("condition is required");
+        }
+        if (item.getExpiresAt() == null) {
+            item.setExpiresAt(Instant.now().plus(DEFAULT_LISTING_DURATION));
+        }
+        if (!item.getExpiresAt().isAfter(Instant.now())) {
+            throw new IllegalArgumentException("Listing expiration must be in the future");
         }
         if (auctioneer == null || auctioneer.getAuctioneerId() == null) {
             throw new IllegalArgumentException("An auctioneer is required to list an item");
@@ -89,13 +103,16 @@ public class BidService {
     }
 
     public ItemBid addItem(String itemName, Double startingPrice,
-                           String description, ItemCondition condition, String auctioneerId, String auctioneerName) {
+                           String description, ItemCondition condition,
+                           Integer durationAmount, ListingDurationUnit durationUnit,
+                           String auctioneerId, String auctioneerName) {
         BidItem item = new BidItem();
         item.setItemName(itemName);
         item.setStartingPrice(startingPrice);
         item.setDescription(description);
         item.setCondition(condition);
         item.setArchived(false);
+        item.setExpiresAt(computeExpiresAt(durationAmount, durationUnit));
         Auctioneer auctioneer = new Auctioneer();
         auctioneer.setAuctioneerId(auctioneerId);
         auctioneer.setName(auctioneerName);
@@ -103,6 +120,7 @@ public class BidService {
     }
 
     public ItemBid getItem(String itemId) {
+        expireStaleListings();
         ItemBid bid = itemBids.get(itemId);
         if (bid == null) {
             throw new IllegalStateException("Item " + itemId + " has not been listed by an auctioneer");
@@ -112,6 +130,7 @@ public class BidService {
 
     @Transactional
     public String placeBid(String itemId, String bidderId, int amount) {
+        expireStaleListings();
         if (bidderId == null || bidderId.isBlank()) {
             throw new IllegalArgumentException("bidderId is required");
         }
@@ -141,11 +160,19 @@ public class BidService {
     }
 
     public int getHighestBid(String itemId) {
+        expireStaleListings();
         return getItem(itemId).getHighestBid();
     }
 
     public String getHighestBidder(String itemId) {
+        expireStaleListings();
         return getItem(itemId).getHighestBidder();
+    }
+
+    @Transactional(readOnly = true)
+    public int getActiveBidCount(String itemId) {
+        expireStaleListings();
+        return Math.toIntExact(bidRepo.countByItemIdAndActiveTrue(itemId));
     }
 
     @Transactional(readOnly = true)
@@ -155,6 +182,7 @@ public class BidService {
 
     @Transactional(readOnly = true)
     public List<ActiveBidSummaryResponse> getActiveBidSummariesForBidder(String bidderId) {
+        expireStaleListings();
         List<ActiveBidSummaryResponse> summaries = new ArrayList<>();
         List<String> itemIds = bidRepo.findAllByBidderIdAndActiveTrueOrderByCreatedAtAsc(bidderId).stream()
             .map(Bid::getItemId)
@@ -173,6 +201,7 @@ public class BidService {
 
     @Transactional(readOnly = true)
     public List<ActiveBidSummaryResponse> getActiveBidSummariesForAuctioneer(String auctioneerId) {
+        expireStaleListings();
         List<ActiveBidSummaryResponse> summaries = new ArrayList<>();
         for (BidItem item : itemRepo.findAllByAuctioneer_AuctioneerIdOrderByItemIdAsc(auctioneerId)) {
             ItemBid itemBid = itemBids.get(item.getItemId());
@@ -185,6 +214,7 @@ public class BidService {
 
     @Transactional(readOnly = true)
     public List<ActiveBidSummaryResponse> getAllActiveBidSummaries() {
+        expireStaleListings();
         return itemRepo.findAll().stream()
             .map(BidItem::getItemId)
             .sorted()
@@ -196,6 +226,7 @@ public class BidService {
 
     @Transactional(readOnly = true)
     public List<BidHistorySummaryResponse> getBidHistoryForBidder(String bidderId) {
+        expireStaleListings();
         LinkedHashSet<String> itemIds = bidRepo.findAllByBidderIdAndActiveFalseOrderByCreatedAtAsc(bidderId).stream()
             .map(Bid::getItemId)
             .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
@@ -208,6 +239,7 @@ public class BidService {
 
     @Transactional(readOnly = true)
     public List<BidHistorySummaryResponse> getBidHistoryForAuctioneer(String auctioneerId) {
+        expireStaleListings();
         return itemRepo.findAllByAuctioneer_AuctioneerIdOrderByItemIdAsc(auctioneerId).stream()
             .filter(BidItem::isArchived)
             .map(item -> toHistorySummary(item.getItemId(), null, true))
@@ -217,6 +249,7 @@ public class BidService {
 
     @Transactional(readOnly = true)
     public List<BidHistorySummaryResponse> getAllBidHistory() {
+        expireStaleListings();
         return itemRepo.findAll().stream()
             .filter(BidItem::isArchived)
             .sorted(Comparator.comparing(BidItem::getItemId))
@@ -227,11 +260,13 @@ public class BidService {
 
     @Transactional(readOnly = true)
     public List<BidHistorySummaryResponse> getExpiredBidOutcomes() {
+        expireStaleListings();
         return getAllBidHistory();
     }
 
     @Transactional
     public String removeBid(String itemId, String bidderId) {
+        expireStaleListings();
         itemRepo.findByItemId(itemId)
             .orElseThrow(() -> new IllegalStateException("Item " + itemId + " has not been listed by an auctioneer"));
         ItemBid bid = getItem(itemId);
@@ -243,6 +278,20 @@ public class BidService {
             bidRepo.saveAll(active);
             bid.removeBid(bidderId);
             return "Removed bid by " + bidderId + " on " + itemId;
+        }
+    }
+
+    @Transactional
+    public void expireStaleListings() {
+        Instant now = Instant.now();
+        for (BidItem item : itemRepo.findAllByArchivedFalseOrderByItemIdAsc()) {
+            if (item.getExpiresAt() == null) {
+                item.setExpiresAt(now.plus(DEFAULT_LISTING_DURATION));
+                itemRepo.save(item);
+            }
+            if (item.getExpiresAt() != null && !item.getExpiresAt().isAfter(now)) {
+                archiveListing(item);
+            }
         }
     }
 
@@ -329,5 +378,34 @@ public class BidService {
         }
 
         return "listing-" + UUID.randomUUID();
+    }
+
+    private Instant computeExpiresAt(Integer durationAmount, ListingDurationUnit durationUnit) {
+        if (durationAmount == null || durationAmount < 1) {
+            throw new IllegalArgumentException("durationAmount must be at least 1");
+        }
+        if (durationUnit == null) {
+            throw new IllegalArgumentException("durationUnit is required");
+        }
+        ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
+        return switch (durationUnit) {
+            case HOURS -> now.plusHours(durationAmount).toInstant();
+            case DAYS -> now.plusDays(durationAmount).toInstant();
+            case WEEKS -> now.plusWeeks(durationAmount).toInstant();
+            case MONTHS -> now.plusMonths(durationAmount).toInstant();
+        };
+    }
+
+    private void archiveListing(BidItem item) {
+        item.setArchived(true);
+        itemRepo.save(item);
+        List<Bid> activeBids = bidRepo.findAllByItemIdAndActiveTrueOrderByCreatedAtAsc(item.getItemId());
+        for (Bid bid : activeBids) {
+            bid.setActive(false);
+        }
+        if (!activeBids.isEmpty()) {
+            bidRepo.saveAll(activeBids);
+        }
+        itemBids.remove(item.getItemId());
     }
 }

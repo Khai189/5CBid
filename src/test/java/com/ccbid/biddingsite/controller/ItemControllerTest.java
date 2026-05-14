@@ -31,7 +31,7 @@ class ItemControllerTest {
     void getItemsReturnsOk() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
         when(itemService.getItems(null, null, null, null, null))
-            .thenReturn(List.of(new ItemListingSummaryResponse(null, null, null, null, null, null, null, null, null, 0)));
+            .thenReturn(List.of(new ItemListingSummaryResponse(null, null, null, null, null, null, null, null, null, 0, null)));
 
         mockMvc.perform(get("/items/all"))
             .andExpect(status().isOk());
@@ -43,7 +43,7 @@ class ItemControllerTest {
     void getItemsPassesSearchFilters() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
         when(itemService.getItems("bike", "seller-1", 25.0, 200.0, "USED"))
-            .thenReturn(List.of(new ItemListingSummaryResponse(null, null, null, null, null, null, null, null, null, 0)));
+            .thenReturn(List.of(new ItemListingSummaryResponse(null, null, null, null, null, null, null, null, null, 0, null)));
 
         mockMvc.perform(get("/items/all")
                 .param("query", "bike")
@@ -61,7 +61,7 @@ class ItemControllerTest {
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
 
         ItemListingSummaryResponse item = new ItemListingSummaryResponse(
-            "item-42", "Lamp", 10.0, null, "USED", "seller-1", "Sam", "bidder-9", 18, 3
+            "item-42", "Lamp", 10.0, null, "USED", "seller-1", "Sam", "bidder-9", 18, 3, null
         );
         when(itemService.getItem("item-42")).thenReturn(item);
 

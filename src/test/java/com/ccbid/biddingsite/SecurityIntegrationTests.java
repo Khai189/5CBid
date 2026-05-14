@@ -151,7 +151,9 @@ class SecurityIntegrationTests {
                     {
                       "itemName": "Camera",
                       "startingPrice": 100,
-                      "condition": "USED"
+                      "condition": "USED",
+                      "durationAmount": 1,
+                      "durationUnit": "DAYS"
                     }
                     """))
             .andExpect(status().isForbidden());
@@ -173,7 +175,9 @@ class SecurityIntegrationTests {
                     {
                       "itemName": "Laptop",
                       "startingPrice": 300,
-                      "condition": "NEW"
+                      "condition": "NEW",
+                      "durationAmount": 1,
+                      "durationUnit": "DAYS"
                     }
                     """))
             .andExpect(status().isOk())
@@ -205,7 +209,9 @@ class SecurityIntegrationTests {
                     {
                       "itemName": "Laptop",
                       "startingPrice": 300,
-                      "condition": "USED"
+                      "condition": "USED",
+                      "durationAmount": 1,
+                      "durationUnit": "DAYS"
                     }
                     """))
             .andExpect(status().isOk());

@@ -13,4 +13,6 @@ public interface BidRepo extends JpaRepository<Bid, Long> {
     List<Bid> findAllByBidderIdAndActiveTrueOrderByCreatedAtAsc(String bidderId);
     List<Bid> findAllByBidderIdAndActiveFalseOrderByCreatedAtAsc(String bidderId);
     List<Bid> findAllByItemIdOrderByCreatedAtAsc(String itemId);
+    List<Bid> findAllByItemIdAndActiveTrueOrderByCreatedAtAsc(String itemId);
+    long countByItemIdAndActiveTrue(String itemId);
 }

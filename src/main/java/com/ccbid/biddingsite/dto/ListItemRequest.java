@@ -4,5 +4,7 @@ public record ListItemRequest(
     String itemName,
     Double startingPrice,
     String description,
-    String condition
+    String condition,
+    Integer durationAmount,
+    String durationUnit
 ) {}

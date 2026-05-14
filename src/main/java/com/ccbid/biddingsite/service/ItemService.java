@@ -22,6 +22,7 @@ public class ItemService {
     private BidService bidService;
 
     public List<ItemListingSummaryResponse> getItems(String query, String auctioneerId, Double minPrice, Double maxPrice, String condition) {
+        bidService.expireStaleListings();
         if (maxPrice != null && maxPrice < 0.5d) {
             throw new IllegalArgumentException("maxPrice must be at least 0.5");
         }
@@ -43,7 +44,12 @@ public class ItemService {
     }
 
     public ItemListingSummaryResponse getItem(String itemId) {
-        return toSummary(getItemEntity(itemId));
+        bidService.expireStaleListings();
+        BidItem item = getItemEntity(itemId);
+        if (item.isArchived()) {
+            throw new IllegalStateException("Item " + itemId + " not found");
+        }
+        return toSummary(item);
     }
 
     public BidItem updateItem(String itemId, String itemName, Double startingPrice){
@@ -141,7 +147,8 @@ public class ItemService {
             auctioneer == null ? null : auctioneer.getName(),
             liveBid == null ? null : liveBid.getHighestBidder(),
             highestBidAmount < 0 ? null : highestBidAmount,
-            bidCount
+            bidService.getActiveBidCount(item.getItemId()),
+            item.getExpiresAt()
         );
     }
     
