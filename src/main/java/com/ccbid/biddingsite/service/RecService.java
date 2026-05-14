@@ -1,10 +1,12 @@
 package com.ccbid.biddingsite.service;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalDouble;
 import java.util.Set;
 
 import org.springframework.stereotype.Service;
@@ -44,7 +46,7 @@ public class RecService {
 
         Set<String> excluded = getBidderHistory(bidderId);
         excluded.add(itemId);
-        return rankItemsByDistance(itemId, excluded, totalRecs);
+        return rankItemsByDistance(itemId, excluded, totalRecs, getPreferredPriceCeiling(bidderId));
     }
 
     public List<BidItem> getFeed(String bidderId) {
@@ -64,12 +66,14 @@ public class RecService {
             }
         }
 
+        OptionalDouble preferredPriceCeiling = getPreferredPriceCeiling(bidderId);
         return bestDistances.entrySet().stream()
-            .sorted(Map.Entry.comparingByValue())
+            .map(entry -> new CandidateScore(itemsById.get(entry.getKey()), entry.getValue(),
+                getBudgetPenalty(itemsById.get(entry.getKey()), preferredPriceCeiling)))
+            .filter(candidate -> candidate.item() != null)
+            .sorted(candidateComparator())
             .limit(10)
-            .map(Map.Entry::getKey)
-            .map(itemsById::get)
-            .filter(item -> item != null)
+            .map(CandidateScore::item)
             .toList();
     }
 
@@ -114,14 +118,44 @@ public class RecService {
         return history;
     }
 
-    private List<BidItem> rankItemsByDistance(String sourceItemId, Set<String> excludedItemIds, int limit) {
+    private List<BidItem> rankItemsByDistance(String sourceItemId, Set<String> excludedItemIds, int limit,
+                                              OptionalDouble preferredPriceCeiling) {
         return itemGraph.getShortestPaths(sourceItemId).entrySet().stream()
             .filter(entry -> !excludedItemIds.contains(entry.getKey()))
-            .sorted(Map.Entry.comparingByValue())
+            .map(entry -> new CandidateScore(itemsById.get(entry.getKey()), entry.getValue(),
+                getBudgetPenalty(itemsById.get(entry.getKey()), preferredPriceCeiling)))
+            .filter(candidate -> candidate.item() != null)
+            .sorted(candidateComparator())
             .limit(limit)
-            .map(Map.Entry::getKey)
-            .map(itemsById::get)
-            .filter(item -> item != null)
+            .map(CandidateScore::item)
             .toList();
+    }
+
+    private OptionalDouble getPreferredPriceCeiling(String bidderId) {
+        return bidRepo.findAllByBidderIdOrderByCreatedAtAsc(bidderId).stream()
+            .map(Bid::getAmount)
+            .filter(amount -> amount != null && amount > 0)
+            .mapToDouble(Integer::doubleValue)
+            .max();
+    }
+
+    private double getBudgetPenalty(BidItem item, OptionalDouble preferredPriceCeiling) {
+        if (item == null || item.getStartingPrice() == null) {
+            return Double.MAX_VALUE;
+        }
+        if (preferredPriceCeiling.isEmpty()) {
+            return 0d;
+        }
+        return Math.max(0d, item.getStartingPrice() - preferredPriceCeiling.getAsDouble());
+    }
+
+    private Comparator<CandidateScore> candidateComparator() {
+        return Comparator.comparingDouble(CandidateScore::budgetPenalty)
+            .thenComparingInt(CandidateScore::distance)
+            .thenComparing(candidate -> candidate.item().getStartingPrice(), Comparator.nullsLast(Double::compareTo))
+            .thenComparing(candidate -> candidate.item().getItemId());
+    }
+
+    private record CandidateScore(BidItem item, int distance, double budgetPenalty) {
     }
 }
