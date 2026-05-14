@@ -29,6 +29,12 @@ import com.ccbid.biddingsite.repository.BidderRepo;
 import com.ccbid.biddingsite.repository.UserAccountRepo;
 
 @Service
+/**
+ * This class handles user authentication, registration, and session management  
+ * 
+ * This service coordinates UserAccount entities and ensures that the corresponding Bidder or 
+ * Auctioneer profiles are authenticated based on the assign AccountRole
+ */
 public class AuthService {
 
     @Autowired
@@ -50,6 +56,14 @@ public class AuthService {
     private long jwtExpirationSeconds;
 
     @Transactional
+    /**
+     * Registers a new user and provisions their specific role 
+     * 
+     * Validation for duplicate usernames/emails 
+     * 
+     * @param request The registration details (username, email, password, role)
+     * @return A AuthSessoinResponse containing the JWT and user profile
+     */
     public AuthSessionResponse register(RegisterRequest request) {
         String username = normalizeRequired(request.username(), "username");
         String email = normalizeEmail(request.email());
@@ -101,6 +115,12 @@ public class AuthService {
             .orElseThrow(() -> new IllegalStateException("Account " + username + " not found"));
     }
 
+    /**
+     * Synchronizes UserACcount with profile tables
+     * 
+     * Ensures that a corresponding entry exists in the bidder or auctioneer table 
+     * to support auction logic and relationships 
+     */
     private void ensureRoleProfile(UserAccount account) {
         if (account.getRole() == AccountRole.BIDDER && !bidderRepo.existsById(account.getUsername())) {
             bidderRepo.save(new Bidder(account.getUsername(), account.getDisplayName()));

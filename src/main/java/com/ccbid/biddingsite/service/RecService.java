@@ -94,16 +94,39 @@ public class RecService {
         }
     }
 
+    // private void addCoBidEdges(List<String> itemIds) {
+    //     for (int i = 0; i < itemIds.size(); i++) {
+    //         for (int j = i + 1; j < itemIds.size(); j++) {
+    //             String from = itemIds.get(i);
+    //             String to = itemIds.get(j);
+    //             Integer existingWeight = itemGraph.getEdgeWeight(from, to);
+    //             int updatedWeight = existingWeight == null ? 100 : Math.max(1, existingWeight - 10);
+    //             itemGraph.addEdge(from, to, updatedWeight, true);
+    //         }
+    //     }
+    // }
     private void addCoBidEdges(List<String> itemIds) {
         for (int i = 0; i < itemIds.size(); i++) {
             for (int j = i + 1; j < itemIds.size(); j++) {
-                String from = itemIds.get(i);
-                String to = itemIds.get(j);
-                Integer existingWeight = itemGraph.getEdgeWeight(from, to);
-                int updatedWeight = existingWeight == null ? 100 : Math.max(1, existingWeight - 10);
-                itemGraph.addEdge(from, to, updatedWeight, true);
+                String idA = itemIds.get(i);
+                String idB = itemIds.get(j); 
+
+                BidItem itemA = itemsById.get(idA); 
+                BidItem itemB = itemsById.get(idB);
+
+                if (itemA != null && itemB != null) {
+                    // Get the lower difference between these two prices 
+                    int priceA = itemA.getStartingPrice(); 
+                    int priceB = itemB.getStartingPrice();  
+
+                    // Ensure that we don't have a 0-weight edge
+                    int weight = Math.abs(priceA - priceB) + 1; 
+
+                    itemGraph.addEdge(idA, idB, weight, true);
+                }
+
             }
-        }
+         }
     }
 
     private Set<String> getBidderHistory(String bidderId) {
