@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ccbid.biddingsite.dataStructures.ItemBid;
 import com.ccbid.biddingsite.dto.ActiveBidSummaryResponse;
+import com.ccbid.biddingsite.dto.BidHistorySummaryResponse;
 import com.ccbid.biddingsite.dto.ListItemRequest;
 import com.ccbid.biddingsite.dto.PlaceBidRequest;
 import com.ccbid.biddingsite.models.UserAccount;
@@ -89,6 +90,17 @@ public class BidController {
             return service.getActiveBidSummariesForAuctioneer(authentication.getName());
         }
         return service.getActiveBidSummariesForBidder(authentication.getName());
+    }
+
+    @GetMapping("/history")
+    public Iterable<BidHistorySummaryResponse> getBidHistory(Authentication authentication) {
+        if (isAdmin(authentication)) {
+            return service.getAllBidHistory();
+        }
+        if (hasRole(authentication, "ROLE_AUCTIONEER")) {
+            return service.getBidHistoryForAuctioneer(authentication.getName());
+        }
+        return service.getBidHistoryForBidder(authentication.getName());
     }
 
     @DeleteMapping("/{itemId}")

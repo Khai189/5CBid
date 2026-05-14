@@ -78,7 +78,7 @@ public class RecService {
         itemsById.clear();
         Map<String, Set<String>> itemsByBidder = new HashMap<>();
 
-        for (BidItem item : itemRepo.findAll()) {
+        for (BidItem item : itemRepo.findAllByArchivedFalseOrderByItemIdAsc()) {
             itemsById.put(item.getItemId(), item);
             itemGraph.addVertex(item.getItemId());
         }

@@ -2,8 +2,10 @@ package com.ccbid.biddingsite.service;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.ccbid.biddingsite.dataStructures.ItemBid;
 import com.ccbid.biddingsite.dto.ActiveBidSummaryResponse;
+import com.ccbid.biddingsite.dto.BidHistorySummaryResponse;
 import com.ccbid.biddingsite.models.Auctioneer;
 import com.ccbid.biddingsite.models.Bid;
 import com.ccbid.biddingsite.models.BidItem;
@@ -36,7 +39,7 @@ public class BidService {
     @PostConstruct
     @Transactional(readOnly = true)
     public void rehydrate() {
-        for (BidItem item : itemRepo.findAll()) {
+        for (BidItem item : itemRepo.findAllByArchivedFalseOrderByItemIdAsc()) {
             itemBids.put(item.getItemId(), new ItemBid(item.getAuctioneer(), item));
         }
         for (Bid b : bidRepo.findAllByActiveTrueOrderByCreatedAtAsc()) {
@@ -168,6 +171,37 @@ public class BidService {
             .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<BidHistorySummaryResponse> getBidHistoryForBidder(String bidderId) {
+        LinkedHashSet<String> itemIds = bidRepo.findAllByBidderIdAndActiveFalseOrderByCreatedAtAsc(bidderId).stream()
+            .map(Bid::getItemId)
+            .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+
+        return itemIds.stream()
+            .map(itemId -> toHistorySummary(itemId, bidderId, false))
+            .filter(summary -> summary != null)
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<BidHistorySummaryResponse> getBidHistoryForAuctioneer(String auctioneerId) {
+        return itemRepo.findAllByAuctioneer_AuctioneerIdOrderByItemIdAsc(auctioneerId).stream()
+            .filter(BidItem::isArchived)
+            .map(item -> toHistorySummary(item.getItemId(), null, true))
+            .filter(summary -> summary != null)
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<BidHistorySummaryResponse> getAllBidHistory() {
+        return itemRepo.findAll().stream()
+            .filter(BidItem::isArchived)
+            .sorted(Comparator.comparing(BidItem::getItemId))
+            .map(item -> toHistorySummary(item.getItemId(), null, false))
+            .filter(summary -> summary != null)
+            .toList();
+    }
+
     @Transactional
     public String removeBid(String itemId, String bidderId) {
         ItemBid bid = getItem(itemId);
@@ -200,6 +234,49 @@ public class BidService {
             highestBidAmount < 0 ? null : highestBidAmount,
             viewerBidAmount,
             viewerBidAmount != null && viewerBidAmount.equals(highestBidAmount),
+            viewerOwnsListing
+        );
+    }
+
+    private BidHistorySummaryResponse toHistorySummary(String itemId, String viewerBidderId, boolean viewerOwnsListing) {
+        BidItem item = itemRepo.findById(itemId).orElse(null);
+        if (item == null) {
+            return null;
+        }
+
+        List<Bid> bids = bidRepo.findAllByItemIdOrderByCreatedAtAsc(itemId).stream()
+            .filter(bid -> !bid.isActive())
+            .toList();
+        if (bids.isEmpty()) {
+            return null;
+        }
+
+        Bid highestBid = bids.stream()
+            .max(Comparator.comparing(Bid::getAmount).thenComparing(Bid::getCreatedAt))
+            .orElse(null);
+        Instant lastBidAt = bids.stream()
+            .map(Bid::getCreatedAt)
+            .max(Comparator.naturalOrder())
+            .orElse(null);
+        Integer viewerBidAmount = viewerBidderId == null ? null : bids.stream()
+            .filter(bid -> bid.getBidderId().equals(viewerBidderId))
+            .map(Bid::getAmount)
+            .max(Integer::compareTo)
+            .orElse(null);
+
+        Auctioneer auctioneer = item.getAuctioneer();
+        return new BidHistorySummaryResponse(
+            item.getItemId(),
+            item.getItemName(),
+            item.getDescription(),
+            item.getStartingPrice(),
+            auctioneer == null ? null : auctioneer.getAuctioneerId(),
+            auctioneer == null ? null : auctioneer.getName(),
+            highestBid == null ? null : highestBid.getBidderId(),
+            highestBid == null ? null : highestBid.getAmount(),
+            viewerBidAmount,
+            lastBidAt,
+            bids.size(),
             viewerOwnsListing
         );
     }

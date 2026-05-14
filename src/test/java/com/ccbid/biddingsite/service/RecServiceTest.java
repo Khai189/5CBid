@@ -35,7 +35,7 @@ class RecServiceTest {
         BidItem item2 = item("item-2", "Lens");
         BidItem item3 = item("item-3", "Tripod");
 
-        when(itemRepo.findAll()).thenReturn(List.of(item1, item2, item3));
+        when(itemRepo.findAllByArchivedFalseOrderByItemIdAsc()).thenReturn(List.of(item1, item2, item3));
         when(bidRepo.findAllByActiveTrueOrderByCreatedAtAsc()).thenReturn(List.of(
             bid("item-1", "bidder-a"),
             bid("item-2", "bidder-b"),
@@ -58,7 +58,7 @@ class RecServiceTest {
         BidItem item2 = item("item-2", "Lens");
         BidItem item3 = item("item-3", "Tripod");
 
-        when(itemRepo.findAll()).thenReturn(List.of(item1, item2, item3));
+        when(itemRepo.findAllByArchivedFalseOrderByItemIdAsc()).thenReturn(List.of(item1, item2, item3));
         when(bidRepo.findAllByActiveTrueOrderByCreatedAtAsc()).thenReturn(List.of(
             bid("item-1", "bidder-a"),
             bid("item-1", "bidder-b"),
