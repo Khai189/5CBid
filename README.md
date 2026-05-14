@@ -235,8 +235,8 @@ Authorization: Bearer <token>
 ### `GET /items/all`
 
 - Input: Bearer token, optional query params `query`, `auctioneerId`, `minPrice`, `maxPrice`, `condition`
-- Output: `Iterable<BidItem>`
-- Description: Returns all currently listed non-archived items, optionally filtered by search text, seller, opening-bid range, and condition.
+- Output: `Iterable<ItemListingSummaryResponse>`
+- Description: Returns all currently listed non-archived items, optionally filtered by search text, seller, opening-bid range, and condition. Each item also includes the current highest bidder, current highest bid, active bid count, and listing expiration time.
 
 Usage example:
 
@@ -248,8 +248,8 @@ Authorization: Bearer <token>
 ### `GET /items/{itemId}`
 
 - Input: `itemId`
-- Output: `BidItem`
-- Description: Returns one item by ID.
+- Output: `ItemListingSummaryResponse`
+- Description: Returns one live listing by ID, including current bid stats and expiration time.
 
 Usage example:
 
@@ -259,7 +259,7 @@ Usage example:
 
 - Input: `ListItemRequest`
 - Output: `ListItemResponse`
-- Description: Lets an auctioneer post a listing. The backend generates the listing ID automatically.
+- Description: Lets an auctioneer post a listing. The backend generates the listing ID automatically and stores an expiration timestamp based on the requested duration amount and unit.
 
 Usage example:
 
@@ -268,7 +268,9 @@ Usage example:
   "itemName": "Desk Lamp",
   "startingPrice": 15,
   "description": "Warm light for a dorm desk.",
-  "condition": "USED"
+  "condition": "USED",
+  "durationAmount": 3,
+  "durationUnit": "DAYS"
 }
 ```
 
@@ -280,6 +282,7 @@ Expected output:
   "itemName": "Desk Lamp",
   "auctioneerId": "seller123",
   "auctioneerName": "Maya",
+  "expiresAt": "2026-05-16T22:00:00Z",
   "message": "Listed desk-lamp-a1b2c3d4 (Desk Lamp) by auctioneer seller123"
 }
 ```
@@ -322,7 +325,7 @@ Expected output:
 
 - Input: Bearer token
 - Output: `Iterable<ActiveBidSummaryResponse>`
-- Description: Returns active bid activity for the current user. Bidders see the listings they are bidding on, auctioneers see their live listings, and admins see all live bid summaries.
+- Description: Returns active bid activity for the current user. Bidders see the listings they are bidding on, auctioneers see their live listings, and admins see all live bid summaries, including the current highest bidder and highest bid amount.
 
 Usage example:
 
@@ -415,7 +418,7 @@ Usage example:
 
 - Input: `bidderId`, `itemId`, `totalRecs`
 - Output: `List<BidItem>`
-- Description: Returns recommended items using the item graph and shortest-path ranking.
+- Description: Returns recommended items using the item graph and shortest-path ranking, while preferring items that fit the bidder's historical price range.
 
 Usage example:
 
