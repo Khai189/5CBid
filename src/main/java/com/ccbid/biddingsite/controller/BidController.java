@@ -18,6 +18,7 @@ import com.ccbid.biddingsite.dto.ActiveBidSummaryResponse;
 import com.ccbid.biddingsite.dto.BidHistorySummaryResponse;
 import com.ccbid.biddingsite.dto.ListItemRequest;
 import com.ccbid.biddingsite.dto.PlaceBidRequest;
+import com.ccbid.biddingsite.models.ItemCondition;
 import com.ccbid.biddingsite.models.UserAccount;
 import com.ccbid.biddingsite.service.AuthService;
 import com.ccbid.biddingsite.service.BidService;
@@ -51,6 +52,7 @@ public class BidController {
             req.itemName(),
             req.startingPrice(),
             req.description(),
+            parseCondition(req.condition()),
             account.getUsername(),
             account.getDisplayName()
         );
@@ -137,5 +139,16 @@ public class BidController {
     private boolean hasRole(Authentication authentication, String role) {
         return authentication.getAuthorities().stream()
             .anyMatch(authority -> role.equals(authority.getAuthority()));
+    }
+
+    private ItemCondition parseCondition(String condition) {
+        if (condition == null || condition.isBlank()) {
+            throw new IllegalArgumentException("condition is required");
+        }
+        try {
+            return ItemCondition.valueOf(condition.trim().toUpperCase().replace(' ', '_'));
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("condition must be NEW, USED, or HIGHLY_DAMAGED");
+        }
     }
 }
