@@ -19,6 +19,7 @@ import com.ccbid.biddingsite.models.Auctioneer;
 import com.ccbid.biddingsite.models.Bid;
 import com.ccbid.biddingsite.models.BidItem;
 import com.ccbid.biddingsite.models.Bidder;
+import com.ccbid.biddingsite.models.ItemCondition;
 import com.ccbid.biddingsite.repository.AuctioneerRepo;
 import com.ccbid.biddingsite.repository.BidRepo;
 import com.ccbid.biddingsite.repository.BidderRepo;
@@ -55,6 +56,12 @@ public class BidService {
         if (item == null || item.getItemId() == null) {
             throw new IllegalArgumentException("Item and itemId are required");
         }
+        if (item.getStartingPrice() == null || item.getStartingPrice() < 0.5d) {
+            throw new IllegalArgumentException("Price must be equal to or above 50 cents");
+        }
+        if (item.getCondition() == null) {
+            throw new IllegalArgumentException("condition is required");
+        }
         if (auctioneer == null || auctioneer.getAuctioneerId() == null) {
             throw new IllegalArgumentException("An auctioneer is required to list an item");
         }
@@ -73,13 +80,15 @@ public class BidService {
         return ib;
     }
 
-    public ItemBid addItem(String itemId, String itemName, Integer startingPrice,
-                           String description, String auctioneerId, String auctioneerName) {
+    public ItemBid addItem(String itemId, String itemName, Double startingPrice,
+                           String description, ItemCondition condition, String auctioneerId, String auctioneerName) {
         BidItem item = new BidItem();
         item.setItemId(itemId);
         item.setItemName(itemName);
         item.setStartingPrice(startingPrice);
         item.setDescription(description);
+        item.setCondition(condition);
+        item.setArchived(false);
         Auctioneer auctioneer = new Auctioneer();
         auctioneer.setAuctioneerId(auctioneerId);
         auctioneer.setName(auctioneerName);
@@ -99,13 +108,15 @@ public class BidService {
         if (bidderId == null || bidderId.isBlank()) {
             throw new IllegalArgumentException("bidderId is required");
         }
+        itemRepo.findByItemId(itemId)
+            .orElseThrow(() -> new IllegalStateException("Item " + itemId + " has not been listed by an auctioneer"));
         bidderRepo.findById(bidderId)
             .orElseThrow(() -> new IllegalStateException("Bidder " + bidderId + " is not registered"));
         ItemBid bid = getItem(itemId);
         synchronized (bid) {
             int currentHighest = bid.getHighestBid();
             String currentLeader = bid.getHighestBidder();
-            Integer startingPrice = bid.getItem().getStartingPrice();
+            Double startingPrice = bid.getItem().getStartingPrice();
             if (bidderId.equals(currentLeader)) {
                 throw new IllegalArgumentException("Bidder " + bidderId + " already holds the highest bid and cannot rebid");
             }
@@ -204,6 +215,8 @@ public class BidService {
 
     @Transactional
     public String removeBid(String itemId, String bidderId) {
+        itemRepo.findByItemId(itemId)
+            .orElseThrow(() -> new IllegalStateException("Item " + itemId + " has not been listed by an auctioneer"));
         ItemBid bid = getItem(itemId);
         synchronized (bid) {
             List<Bid> active = bidRepo.findAllByItemIdAndBidderIdAndActiveTrue(itemId, bidderId);
@@ -228,6 +241,7 @@ public class BidService {
             item.getItemName(),
             item.getDescription(),
             item.getStartingPrice(),
+            item.getCondition() == null ? null : item.getCondition().name(),
             auctioneer == null ? null : auctioneer.getAuctioneerId(),
             auctioneer == null ? null : auctioneer.getName(),
             highestBidderId,
@@ -270,6 +284,7 @@ public class BidService {
             item.getItemName(),
             item.getDescription(),
             item.getStartingPrice(),
+            item.getCondition() == null ? null : item.getCondition().name(),
             auctioneer == null ? null : auctioneer.getAuctioneerId(),
             auctioneer == null ? null : auctioneer.getName(),
             highestBid == null ? null : highestBid.getBidderId(),
