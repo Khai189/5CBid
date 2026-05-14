@@ -9,12 +9,15 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ItemRepo extends JpaRepository<BidItem, String> {
+    List<BidItem> findAllByArchivedFalseOrderByItemIdAsc();
+
     List<BidItem> findAllByAuctioneer_AuctioneerIdOrderByItemIdAsc(String auctioneerId);
 
     @Query("""
         select i
         from BidItem i
-        where (
+        where i.archived = false
+        and (
             :query is null
             or trim(:query) = ''
             or lower(i.itemId) like lower(concat('%', :query, '%'))

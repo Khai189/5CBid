@@ -24,6 +24,9 @@ public class BidItem {
     @Column(length = 2000)
     private String description;
 
+    @Column(nullable = false)
+    private boolean archived;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "auctioneer_id")
     private Auctioneer auctioneer;
@@ -58,6 +61,14 @@ public class BidItem {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public boolean isArchived() {
+        return archived;
+    }
+
+    public void setArchived(boolean archived) {
+        this.archived = archived;
     }
 
     public Auctioneer getAuctioneer() {
