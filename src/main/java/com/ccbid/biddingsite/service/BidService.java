@@ -149,6 +149,11 @@ public class BidService {
     }
 
     @Transactional(readOnly = true)
+    public ItemBid getLiveItemBidOrNull(String itemId) {
+        return itemBids.get(itemId);
+    }
+
+    @Transactional(readOnly = true)
     public List<ActiveBidSummaryResponse> getActiveBidSummariesForBidder(String bidderId) {
         List<ActiveBidSummaryResponse> summaries = new ArrayList<>();
         List<String> itemIds = bidRepo.findAllByBidderIdAndActiveTrueOrderByCreatedAtAsc(bidderId).stream()

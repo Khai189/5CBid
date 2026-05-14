@@ -7,6 +7,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.http.HttpStatus;
 
+import com.ccbid.biddingsite.dataStructures.ItemBid;
+import com.ccbid.biddingsite.dto.ItemListingSummaryResponse;
+import com.ccbid.biddingsite.models.Auctioneer;
 import com.ccbid.biddingsite.models.BidItem;
 import com.ccbid.biddingsite.models.ItemCondition;
 import com.ccbid.biddingsite.repository.ItemRepo;
@@ -15,8 +18,10 @@ import com.ccbid.biddingsite.repository.ItemRepo;
 public class ItemService {
     @Autowired
     private ItemRepo repo;
+    @Autowired
+    private BidService bidService;
 
-    public List<BidItem> getItems(String query, String auctioneerId, Double minPrice, Double maxPrice, String condition) {
+    public List<ItemListingSummaryResponse> getItems(String query, String auctioneerId, Double minPrice, Double maxPrice, String condition) {
         if (maxPrice != null && maxPrice < 0.5d) {
             throw new IllegalArgumentException("maxPrice must be at least 0.5");
         }
@@ -33,16 +38,16 @@ public class ItemService {
             .filter(item -> matchesMinPrice(item, minPrice))
             .filter(item -> matchesMaxPrice(item, maxPrice))
             .filter(item -> normalizedCondition == null || item.getCondition() == normalizedCondition)
+            .map(this::toSummary)
             .toList();
     }
 
-    public BidItem getItem(String itemId) {
-        return repo.findById(itemId)
-            .orElseThrow(() -> new IllegalStateException("Item " + itemId + " not found"));
+    public ItemListingSummaryResponse getItem(String itemId) {
+        return toSummary(getItemEntity(itemId));
     }
 
     public BidItem updateItem(String itemId, String itemName, Double startingPrice){
-        BidItem item = getItem(itemId);
+        BidItem item = getItemEntity(itemId);
         item.setItemName(itemName);
         item.setStartingPrice(startingPrice);
         return repo.save(item);
@@ -113,6 +118,31 @@ public class ItemService {
 
     private boolean contains(String value, String query) {
         return value != null && value.toLowerCase(Locale.ROOT).contains(query);
+    }
+
+    private BidItem getItemEntity(String itemId) {
+        return repo.findById(itemId)
+            .orElseThrow(() -> new IllegalStateException("Item " + itemId + " not found"));
+    }
+
+    private ItemListingSummaryResponse toSummary(BidItem item) {
+        ItemBid liveBid = item.isArchived() ? null : bidService.getLiveItemBidOrNull(item.getItemId());
+        Auctioneer auctioneer = item.getAuctioneer();
+        int highestBidAmount = liveBid == null ? -1 : liveBid.getHighestBid();
+        Integer bidCount = liveBid == null ? 0 : liveBid.getHashMap().size();
+
+        return new ItemListingSummaryResponse(
+            item.getItemId(),
+            item.getItemName(),
+            item.getStartingPrice(),
+            item.getDescription(),
+            item.getCondition() == null ? null : item.getCondition().name(),
+            auctioneer == null ? null : auctioneer.getAuctioneerId(),
+            auctioneer == null ? null : auctioneer.getName(),
+            liveBid == null ? null : liveBid.getHighestBidder(),
+            highestBidAmount < 0 ? null : highestBidAmount,
+            bidCount
+        );
     }
     
 }

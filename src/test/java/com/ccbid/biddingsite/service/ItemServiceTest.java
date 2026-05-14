@@ -12,6 +12,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.ccbid.biddingsite.dataStructures.ItemBid;
+import com.ccbid.biddingsite.models.Auctioneer;
 import com.ccbid.biddingsite.models.BidItem;
 import com.ccbid.biddingsite.repository.ItemRepo;
 
@@ -20,6 +22,8 @@ class ItemServiceTest {
 
     @Mock
     private ItemRepo itemRepo;
+    @Mock
+    private BidService bidService;
 
     @InjectMocks
     private ItemService itemService;
@@ -44,8 +48,36 @@ class ItemServiceTest {
 
         when(itemRepo.findAllByArchivedFalseOrderByItemIdAsc()).thenReturn(List.of(cheap, expensive));
 
-        List<BidItem> filtered = itemService.getItems(null, null, null, 10.0, null);
+        List<String> filtered = itemService.getItems(null, null, null, 10.0, null).stream()
+            .map(summary -> summary.itemId())
+            .toList();
 
-        assertEquals(List.of("item-1"), filtered.stream().map(BidItem::getItemId).toList());
+        assertEquals(List.of("item-1"), filtered);
+    }
+
+    @Test
+    void getItemsIncludesLiveBidSnapshot() {
+        BidItem item = new BidItem();
+        item.setItemId("item-1");
+        item.setItemName("Desk Lamp");
+        item.setStartingPrice(10.0);
+        item.setArchived(false);
+        Auctioneer auctioneer = new Auctioneer();
+        auctioneer.setAuctioneerId("seller-1");
+        auctioneer.setName("Sam");
+        item.setAuctioneer(auctioneer);
+
+        ItemBid itemBid = new ItemBid(auctioneer, item);
+        itemBid.addBid("bidder-1", 18);
+        itemBid.addBid("bidder-2", 22);
+
+        when(itemRepo.findAllByArchivedFalseOrderByItemIdAsc()).thenReturn(List.of(item));
+        when(bidService.getLiveItemBidOrNull("item-1")).thenReturn(itemBid);
+
+        var summary = itemService.getItems(null, null, null, null, null).getFirst();
+
+        assertEquals("bidder-2", summary.highestBidderId());
+        assertEquals(22, summary.highestBidAmount());
+        assertEquals(2, summary.bidCount());
     }
 }

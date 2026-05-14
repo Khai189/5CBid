@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.ccbid.biddingsite.models.BidItem;
+import com.ccbid.biddingsite.dto.ItemListingSummaryResponse;
 import com.ccbid.biddingsite.service.ItemService;
 
 /**
@@ -29,7 +29,7 @@ public class ItemController {
     private ItemService service;
 
     @GetMapping("/all")
-    public Iterable<BidItem> getItems(
+    public Iterable<ItemListingSummaryResponse> getItems(
         @RequestParam(required = false) String query,
         @RequestParam(required = false) String auctioneerId,
         @RequestParam(required = false) Double minPrice,
@@ -40,7 +40,7 @@ public class ItemController {
     }
 
     @GetMapping("/{itemId}")
-    public BidItem getItem(@PathVariable String itemId) {
+    public ItemListingSummaryResponse getItem(@PathVariable String itemId) {
         return service.getItem(itemId);
     }
 

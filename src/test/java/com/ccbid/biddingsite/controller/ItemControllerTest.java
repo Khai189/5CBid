@@ -10,7 +10,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import com.ccbid.biddingsite.models.BidItem;
+import com.ccbid.biddingsite.dto.ItemListingSummaryResponse;
 import com.ccbid.biddingsite.service.ItemService;
 
 import static org.mockito.Mockito.verify;
@@ -30,7 +30,8 @@ class ItemControllerTest {
     @Test
     void getItemsReturnsOk() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
-        when(itemService.getItems(null, null, null, null, null)).thenReturn(List.of(new BidItem()));
+        when(itemService.getItems(null, null, null, null, null))
+            .thenReturn(List.of(new ItemListingSummaryResponse(null, null, null, null, null, null, null, null, null, 0)));
 
         mockMvc.perform(get("/items/all"))
             .andExpect(status().isOk());
@@ -41,7 +42,8 @@ class ItemControllerTest {
     @Test
     void getItemsPassesSearchFilters() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
-        when(itemService.getItems("bike", "seller-1", 25.0, 200.0, "USED")).thenReturn(List.of(new BidItem()));
+        when(itemService.getItems("bike", "seller-1", 25.0, 200.0, "USED"))
+            .thenReturn(List.of(new ItemListingSummaryResponse(null, null, null, null, null, null, null, null, null, 0)));
 
         mockMvc.perform(get("/items/all")
                 .param("query", "bike")
@@ -58,8 +60,9 @@ class ItemControllerTest {
     void getItemBindsPathVariableCorrectly() throws Exception {
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
 
-        BidItem item = new BidItem();
-        item.setItemId("item-42");
+        ItemListingSummaryResponse item = new ItemListingSummaryResponse(
+            "item-42", "Lamp", 10.0, null, "USED", "seller-1", "Sam", "bidder-9", 18, 3
+        );
         when(itemService.getItem("item-42")).thenReturn(item);
 
         mockMvc.perform(get("/items/item-42"))
