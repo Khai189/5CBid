@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface BidRepo extends JpaRepository<Bid, Long> {
     List<Bid> findAllByActiveTrueOrderByCreatedAtAsc();
     List<Bid> findAllByItemIdAndBidderIdAndActiveTrue(String itemId, String bidderId);
+    List<Bid> findAllByBidderIdOrderByCreatedAtAsc(String bidderId);
     List<Bid> findAllByBidderIdAndActiveTrueOrderByCreatedAtAsc(String bidderId);
     List<Bid> findAllByBidderIdAndActiveFalseOrderByCreatedAtAsc(String bidderId);
     List<Bid> findAllByItemIdOrderByCreatedAtAsc(String itemId);

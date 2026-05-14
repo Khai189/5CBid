@@ -14,6 +14,7 @@ import com.ccbid.biddingsite.models.Auctioneer;
 import com.ccbid.biddingsite.models.Bid;
 import com.ccbid.biddingsite.models.BidItem;
 import com.ccbid.biddingsite.models.Bidder;
+import com.ccbid.biddingsite.models.ItemCondition;
 import com.ccbid.biddingsite.repository.AuctioneerRepo;
 import com.ccbid.biddingsite.repository.BidRepo;
 import com.ccbid.biddingsite.repository.BidderRepo;
@@ -62,7 +63,7 @@ class BidServiceTest {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
             () -> service.placeBid("item-1", "bidder-1", 90));
 
-        assertEquals("Bid 90 is below starting price 100", ex.getMessage());
+        assertEquals("Bid 90 is below starting price 100.0", ex.getMessage());
     }
 
     @Test
@@ -144,17 +145,29 @@ class BidServiceTest {
 
     private BidItem registerItem(String itemId, int startingPrice) {
         when(itemRepo.existsById(itemId)).thenReturn(false);
+        when(itemRepo.findByItemId(itemId)).thenReturn(Optional.of(item(itemId, "Locked Item")));
 
         BidItem item = new BidItem();
         item.setItemId(itemId);
         item.setItemName("Test Item");
-        item.setStartingPrice(startingPrice);
+        item.setStartingPrice((double) startingPrice);
+        item.setCondition(ItemCondition.NEW);
+        item.setArchived(false);
 
         Auctioneer auctioneer = new Auctioneer();
         auctioneer.setAuctioneerId("auctioneer-1");
         auctioneer.setName("Alex");
 
         service.addItem(item, auctioneer);
+        return item;
+    }
+
+    private BidItem item(String itemId, String itemName) {
+        BidItem item = new BidItem();
+        item.setItemId(itemId);
+        item.setItemName(itemName);
+        item.setCondition(ItemCondition.NEW);
+        item.setArchived(false);
         return item;
     }
 }

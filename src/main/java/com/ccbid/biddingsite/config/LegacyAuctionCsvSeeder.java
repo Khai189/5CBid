@@ -23,6 +23,7 @@ import com.ccbid.biddingsite.models.Auctioneer;
 import com.ccbid.biddingsite.models.Bid;
 import com.ccbid.biddingsite.models.BidItem;
 import com.ccbid.biddingsite.models.Bidder;
+import com.ccbid.biddingsite.models.ItemCondition;
 import com.ccbid.biddingsite.repository.AuctioneerRepo;
 import com.ccbid.biddingsite.repository.BidRepo;
 import com.ccbid.biddingsite.repository.BidderRepo;
@@ -43,7 +44,7 @@ public class LegacyAuctionCsvSeeder implements ApplicationRunner {
 
     public LegacyAuctionCsvSeeder(
         @Value("classpath:auction.csv") Resource auctionCsv,
-        @Value("${app.seed.legacy-auctions.enabled:false}") boolean enabled,
+        @Value("${app.seed.legacy-auctions.enabled:true}") boolean enabled,
         AuctioneerRepo auctioneerRepo,
         ItemRepo itemRepo,
         BidderRepo bidderRepo,
@@ -63,31 +64,30 @@ public class LegacyAuctionCsvSeeder implements ApplicationRunner {
         if (!enabled) {
             return;
         }
+        Map<String, LegacyAuctionRecord> auctions = loadAuctions();
+        if (auctions.isEmpty()) {
+            return;
+        }
+        String firstLegacyItemId = toLegacyItemId(auctions.keySet().iterator().next());
+        if (itemRepo.existsById(firstLegacyItemId)) {
+            return;
+        }
 
         Auctioneer legacyAuctioneer = auctioneerRepo.findById(LEGACY_AUCTIONEER_ID)
             .orElseGet(() -> auctioneerRepo.save(new Auctioneer(LEGACY_AUCTIONEER_ID, LEGACY_AUCTIONEER_NAME)));
-        Map<String, LegacyAuctionRecord> auctions = loadAuctions();
 
         int auctionIndex = 0;
         for (LegacyAuctionRecord auction : auctions.values()) {
             String legacyItemId = toLegacyItemId(auction.auctionId());
-            BidItem item = itemRepo.findById(legacyItemId).orElseGet(() -> {
-                BidItem seeded = new BidItem();
-                seeded.setItemId(legacyItemId);
-                seeded.setArchived(true);
-                return seeded;
-            });
+            BidItem item = new BidItem();
+            item.setItemId(legacyItemId);
             item.setItemName(auction.itemName());
-            item.setStartingPrice(roundCurrency(auction.openBid()));
+            item.setStartingPrice(auction.openBid());
             item.setDescription(buildDescription(auction));
+            item.setCondition(ItemCondition.NEW);
             item.setArchived(true);
             item.setAuctioneer(legacyAuctioneer);
             itemRepo.save(item);
-
-            if (!bidRepo.findAllByItemIdOrderByCreatedAtAsc(legacyItemId).isEmpty()) {
-                auctionIndex++;
-                continue;
-            }
 
             Instant auctionStart = Instant.parse("2019-01-01T00:00:00Z").plus(auctionIndex, ChronoUnit.DAYS);
             int bidIndex = 0;
@@ -180,7 +180,7 @@ public class LegacyAuctionCsvSeeder implements ApplicationRunner {
 
     private String buildDescription(LegacyAuctionRecord auction) {
         return "Imported legacy auction data. Type: " + auction.auctionType()
-            + ". Historical final price: " + roundCurrency(auction.finalPrice())
+            + ". Condition: New. Historical final price: " + auction.finalPrice()
             + ". Seeded as archived listing with inactive historical bids.";
     }
 

@@ -32,10 +32,11 @@ public class ItemController {
     public Iterable<BidItem> getItems(
         @RequestParam(required = false) String query,
         @RequestParam(required = false) String auctioneerId,
-        @RequestParam(required = false) Integer minPrice,
-        @RequestParam(required = false) Integer maxPrice
+        @RequestParam(required = false) Double minPrice,
+        @RequestParam(required = false) Double maxPrice,
+        @RequestParam(required = false) String condition
     ) {
-        return service.getItems(query, auctioneerId, minPrice, maxPrice);
+        return service.getItems(query, auctioneerId, minPrice, maxPrice, condition);
     }
 
     @GetMapping("/{itemId}")

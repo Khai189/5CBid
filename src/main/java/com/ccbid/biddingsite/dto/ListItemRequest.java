@@ -3,8 +3,9 @@ package com.ccbid.biddingsite.dto;
 public record ListItemRequest(
     String itemId,
     String itemName,
-    Integer startingPrice,
+    Double startingPrice,
     String description,
+    String condition,
     String auctioneerId,
     String auctioneerName
 ) {}

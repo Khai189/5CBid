@@ -1,0 +1,9 @@
+ALTER TABLE IF EXISTS items
+ADD COLUMN IF NOT EXISTS condition VARCHAR(40);
+
+UPDATE items
+SET condition = 'NEW'
+WHERE condition IS NULL;
+
+ALTER TABLE IF EXISTS items
+ALTER COLUMN condition SET DEFAULT 'NEW';

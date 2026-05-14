@@ -2,6 +2,8 @@ package com.ccbid.biddingsite.models;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -25,10 +27,14 @@ public class BidItem {
 
     private String itemName;
 
-    private Integer startingPrice;
+    private Double startingPrice;
 
     @Column(length = 2000)
     private String description;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 40)
+    private ItemCondition condition = ItemCondition.NEW;
 
     @Column(nullable = false)
     private boolean archived;
@@ -53,11 +59,11 @@ public class BidItem {
         this.itemName = itemName;
     }
 
-    public Integer getStartingPrice() {
+    public Double getStartingPrice() {
         return startingPrice;
     }
 
-    public void setStartingPrice(Integer startingPrice) {
+    public void setStartingPrice(Double startingPrice) {
         this.startingPrice = startingPrice;
     }
 
@@ -67,6 +73,14 @@ public class BidItem {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public ItemCondition getCondition() {
+        return condition;
+    }
+
+    public void setCondition(ItemCondition condition) {
+        this.condition = condition;
     }
 
     public boolean isArchived() {
