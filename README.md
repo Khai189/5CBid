@@ -95,19 +95,19 @@ This makes the project closer to a real application that students at the 5C can 
 
 ## Repository Notes
 
-- Backend code lives in `demo/`
+- This GitHub repository root is the backend project root
+- Run commands from the same folder that contains `pom.xml`
 - The separate Next.js frontend lives in [/CS62FinalFrontend](https://github.com/Khai189/CS62FinalFrontend)
-- There is no `/lib` folder of committed `.jar` files because this project uses Maven dependencies from `demo/pom.xml`
+- There is no `/lib` folder of committed `.jar` files because this project uses Maven dependencies from `pom.xml`
 
 ## How To Run The Code
 
 1. Make sure Java 21 and Maven are installed.
 2. Make sure PostgreSQL is running.
 3. Set environment variables.
-4. Start the backend from the `demo/` folder.
+4. Start the backend from the repository root, which is the same folder as `pom.xml`.
 
 ```bash
-cd demo
 export PGHOST=localhost
 export PGPORT=5432
 export PGDATABASE=ccbid
@@ -162,9 +162,10 @@ This project uses Maven-managed libraries, so there are no manual `.jar` install
 Install them by running:
 
 ```bash
-cd demo
 mvn clean install
 ```
+
+If your local machine has this project inside a larger folder, do not create another `demo` directory. Just run Maven from the folder that already contains `pom.xml`.
 
 ## REST API Methods (Methods that require POST, GET, DELETE, PUT, etc)
 
@@ -514,7 +515,6 @@ Public methods:
 Run the backend tests:
 
 ```bash
-cd demo
 mvn test
 ```
 
