@@ -113,7 +113,9 @@ This makes the project closer to a real application that students at the 5C can 
 ## How To Run The Code
 
 1. Make sure Java 21 and Maven are installed.
-2. Make sure PostgreSQL is running.
+2. Choose one database target:
+   - a local PostgreSQL database on your machine, or
+   - the public PostgreSQL connection URL from Railway
 3. Set environment variables.
 4. Start the backend by running the main springboot file which is ```DemoApplication.Java ```
 5. Set up a local PostgreSQL instance with the correct database names passwords and users
@@ -124,23 +126,30 @@ This makes the project closer to a real application that students at the 5C can 
 Since this application requires a local PostgreSQL instance, testng code without the driver is very difficult. Usually you'd need a psql instance running locally with a correct db name and password if you'd want the application to actually run. Otherwise, tests can be assigned individually 
 
 
+### Run against a local PostgreSQL database
+
+Make sure PostgreSQL is running first, and create the database.
+
 ```bash
+createdb ccbid
 export PGHOST=localhost
 export PGPORT=5432
 export PGDATABASE=ccbid
 export PGUSER=postgres
-export PGPASSWORD=postgres
-export APP_SECURITY_JWT_SECRET=replace-with-a-long-random-secret-at-least-32-characters
+export PGPASSWORD=your-local-postgres-password
+export APP_SECURITY_JWT_SECRET=replace-with-your-own-long-random-secret
 export APP_SECURITY_ALLOWED_ORIGINS=http://localhost:3000
+export APP_SEED_LEGACY_AUCTIONS_ENABLED=false
 mvn spring-boot:run
 ```
 
-You can also use direct Spring datasource variables instead of the `PG*` variables:
+### Optional `.env` workflow
+
+If you keep local variables in a `.env` file, remember that Spring Boot does not automatically load that file by itself. Source it in the same terminal session before starting the API:
 
 ```bash
-export SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/ccbid
-export SPRING_DATASOURCE_USERNAME=postgres
-export SPRING_DATASOURCE_PASSWORD=postgres
+source .env
+mvn spring-boot:run
 ```
 
 ## Environment Variables
@@ -162,6 +171,7 @@ Optional:
 
 - `APP_SECURITY_ALLOWED_ORIGINS`
 - `APP_SECURITY_JWT_EXPIRATION_SECONDS`
+- `APP_SEED_LEGACY_AUCTIONS_ENABLED`
 - `PORT`
 
 ## External Libraries
