@@ -3,6 +3,16 @@ A campus-centered auction platform for students at the Claremont Colleges to buy
 
 This project was created for CS62 as a final project focused on using custom data structures to solve a real-world software problem. Our goal is to make student move-out and move-in easier, cheaper, and safer by giving students a 5C-specific alternative to Facebook Marketplace, eBay, or ReCoop.
 
+## Our Deployment
+
+Live Site:
+
+[5CBid](https://5cbid.vercel.app/)
+
+Live API (Need CORS in order to call correctly)
+
+[5cBidAPI](https://5cbid-production.up.railway.app)
+
 ## Project Overview 
 
 At the end of every year, students often have furniture, dorm decorations, appliances, clothes, and other items they no longer need. Many students either throw these items away, donate them, or post informal listings through Google Docs, Slides, group chats, or Chirps. 
@@ -95,7 +105,7 @@ This makes the project closer to a real application that students at the 5C can 
 
 ## Repository Notes
 
-- This GitHub repository root is the backend project root
+- This GitHub repository is the backend root
 - Run commands from the same folder that contains `pom.xml`
 - The separate Next.js frontend lives in [/CS62FinalFrontend](https://github.com/Khai189/CS62FinalFrontend)
 - There is no `/lib` folder of committed `.jar` files because this project uses Maven dependencies from `pom.xml`
@@ -105,7 +115,14 @@ This makes the project closer to a real application that students at the 5C can 
 1. Make sure Java 21 and Maven are installed.
 2. Make sure PostgreSQL is running.
 3. Set environment variables.
-4. Start the backend from the repository root, which is the same folder as `pom.xml`.
+4. Start the backend by running the main springboot file which is ```DemoApplication.Java ```
+5. Set up a local PostgreSQL instance with the correct database names passwords and users
+6. Replace the JWT Secret with a long random base64 instance
+
+## Special Notes:
+
+Since this application requires a local PostgreSQL instance, testng code without the driver is very difficult. Usually you'd need a psql instance running locally with a correct db name and password if you'd want the application to actually run. Otherwise, tests can be assigned individually 
+
 
 ```bash
 export PGHOST=localhost
